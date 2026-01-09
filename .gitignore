@@ -2,10 +2,6 @@
 bin/
 sentinel-core
 sentinel-agent
-# Binaries
-bin/
-sentinel-core
-sentinel-agent
 deploy/downloads/sentinel-agent-*
 !deploy/downloads/install.sh
 !deploy/downloads/install.ps1

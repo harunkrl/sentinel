@@ -2,7 +2,15 @@
 bin/
 sentinel-core
 sentinel-agent
-deploy/downloads/
+# Binaries
+bin/
+sentinel-core
+sentinel-agent
+deploy/downloads/sentinel-agent-*
+!deploy/downloads/install.sh
+!deploy/downloads/install.ps1
+!deploy/downloads/uninstall.sh
+!deploy/downloads/uninstall.ps1
 
 # Dependencies
 node_modules/

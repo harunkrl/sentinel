@@ -104,7 +104,7 @@
 
 ```bash
 # Clone the repository
-git clone https://github.com/yourusername/sentinel.git
+git clone https://github.com/harunkrl/sentinel.git
 cd sentinel
 
 # Configure environment variables

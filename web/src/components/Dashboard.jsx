@@ -84,10 +84,34 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         return `curl -sL http://${host}/downloads/install.sh | sudo bash -s ${hostname} ${port}`;
     };
 
-    const copyToClipboard = () => {
-        navigator.clipboard.writeText(getInstallCommand());
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+    const copyToClipboard = async () => {
+        const text = getInstallCommand();
+        try {
+            if (navigator.clipboard && window.isSecureContext) {
+                await navigator.clipboard.writeText(text);
+            } else {
+                // Fallback for non-secure contexts (HTTP)
+                const textArea = document.createElement("textarea");
+                textArea.value = text;
+                textArea.style.position = "fixed";
+                textArea.style.left = "-9999px";
+                textArea.style.top = "0";
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                try {
+                    document.execCommand('copy');
+                } catch (err) {
+                    console.error('Fallback: Oops, unable to copy', err);
+                }
+                document.body.removeChild(textArea);
+            }
+            // Always show success state for better UX, even if fallback used
+            setCopied(true);
+            setTimeout(() => setCopied(false), 2000);
+        } catch (err) {
+            console.error('Failed to copy:', err);
+        }
     };
 
     useEffect(() => {

@@ -13,6 +13,11 @@ services:
       - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
     volumes:
       - influxdb_data:/var/lib/influxdb2
+    healthcheck:
+      test: "curl -f http://localhost:8086/ping"
+      interval: 5s
+      timeout: 10s
+      retries: 5
     deploy:
       resources:
         limits:
@@ -39,7 +44,8 @@ services:
     volumes:
       - sentinel_data:/data
     depends_on:
-      - influxdb
+      influxdb:
+        condition: service_healthy
     restart: always
 
   web:

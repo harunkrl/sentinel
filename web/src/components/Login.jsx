@@ -18,7 +18,7 @@ export default function Login({ onLoginSuccess }) {
 
         try {
             const res = await axios.post(`${API_BASE}/auth/login`, { username, password });
-            const { token, role } = res.data;
+            const { token } = res.data;
 
             localStorage.setItem("token", token);
             localStorage.setItem("username", username);

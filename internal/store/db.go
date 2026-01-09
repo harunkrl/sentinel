@@ -50,7 +50,9 @@ func NewStore(dataDir string) (*Store, error) {
 	}
 
 	dbPath := filepath.Join(dataDir, "sentinel.db")
-	db, err := sql.Open("sqlite", dbPath)
+	// Use WAL mode for better concurrency and set busy timeout
+	dsn := fmt.Sprintf("%s?_journal_mode=WAL&_busy_timeout=5000&_synchronous=NORMAL", dbPath)
+	db, err := sql.Open("sqlite", dsn)
 	if err != nil {
 		return nil, err
 	}

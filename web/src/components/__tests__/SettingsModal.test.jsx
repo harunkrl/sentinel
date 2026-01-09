@@ -23,14 +23,14 @@ describe('SettingsModal', () => {
 
     it('does not render when closed', () => {
         render(<SettingsModal isOpen={false} onClose={vi.fn()} />);
-        expect(screen.queryByText('General')).not.toBeInTheDocument();
+        expect(screen.queryByText('Settings')).not.toBeInTheDocument();
     });
 
     it('renders when open', async () => {
         render(<SettingsModal isOpen={true} onClose={vi.fn()} />);
 
         await waitFor(() => {
-            expect(screen.getByText('General')).toBeInTheDocument();
+            expect(screen.getByText('Settings')).toBeInTheDocument();
         });
     });
 
@@ -46,10 +46,11 @@ describe('SettingsModal', () => {
         render(<SettingsModal isOpen={true} onClose={vi.fn()} />);
 
         await waitFor(() => {
-            expect(screen.getByText('General')).toBeInTheDocument();
-            expect(screen.getByText('Alerting')).toBeInTheDocument();
-            expect(screen.getByText('Integrations')).toBeInTheDocument();
-            expect(screen.getByText('Security')).toBeInTheDocument();
+            // Use getAllByText since there are multiple occurrences of tab names
+            expect(screen.getAllByText('General').length).toBeGreaterThan(0);
+            expect(screen.getAllByText(/Thresholds/i).length).toBeGreaterThan(0);
+            expect(screen.getAllByText('Integrations').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('Security').length).toBeGreaterThan(0);
         });
     });
 
@@ -57,10 +58,11 @@ describe('SettingsModal', () => {
         render(<SettingsModal isOpen={true} onClose={vi.fn()} />);
 
         await waitFor(() => {
-            expect(screen.getByText('Alerting')).toBeInTheDocument();
+            expect(screen.getAllByText(/Thresholds/i).length).toBeGreaterThan(0);
         });
 
-        fireEvent.click(screen.getByText('Alerting'));
+        // Click the first matching element
+        fireEvent.click(screen.getAllByText(/Thresholds/i)[0]);
 
         await waitFor(() => {
             expect(screen.getByText('Alert Thresholds')).toBeInTheDocument();

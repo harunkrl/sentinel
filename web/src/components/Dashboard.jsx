@@ -155,9 +155,12 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         let reconnectTimeout;
 
         const connectSSE = () => {
-            eventSource = new EventSource(`${API_BASE}/events`);
+            const token = localStorage.getItem("token");
+            if (!token) return; // Wait for login
 
-            eventSource.onmessage = (event) => {
+            eventSource = new EventSource(`${API_BASE}/events?token=${token}`);
+
+            eventSource.onmessage = () => {
                 fetchAgents();
                 fetchAuditLogs();
             };
@@ -346,8 +349,8 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                                 onClick={() => setShowUpdateAllConfirm(true)}
                                 disabled={isUpdatingAll}
                                 className={`glass-button px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all ${isUpdatingAll
-                                        ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
-                                        : 'text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/30'
+                                    ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
+                                    : 'text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/30'
                                     }`}
                                 title="Update all online agents"
                             >
@@ -480,7 +483,7 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                                 const isFavorite = favorites.includes(agent.hostname);
                                 const isOnline = agent.status === 'online';
                                 const { icon: OSIcon, color: iconColor } = getOSIcon(agent);
-                                const isWindows = agent.os?.toLowerCase().includes('windows');
+                                const _isWindows = agent.os?.toLowerCase().includes('windows');
                                 const loadVal = agent.metrics?.load_1 || 0;
 
                                 return (

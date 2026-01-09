@@ -70,7 +70,7 @@ export default function ProcessManager({ agentId, isOnline }) {
             const res = await axios.post(`${API_BASE}/agent/${agentId}/processes`);
             const cmdId = res.data.command_id;
             pollCommandResult(cmdId);
-        } catch (err) {
+        } catch (_err) {
             setError("Failed to initiate command.");
             setLoading(false);
         }
@@ -82,7 +82,7 @@ export default function ProcessManager({ agentId, isOnline }) {
         try {
             await axios.post(`${API_BASE}/agent/${agentId}/kill`, { pid: Number(pid) });
             setTimeout(fetchProcesses, 2000);
-        } catch (err) {
+        } catch (_err) {
             alert("Failed to send kill command");
         }
     };

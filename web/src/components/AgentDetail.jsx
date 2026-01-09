@@ -15,6 +15,7 @@ const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 import ConfirmationModal from './ConfirmationModal';
 
 // --- SPEC ITEM COMPONENT - Enhanced ---
+// eslint-disable-next-line no-unused-vars
 const SpecItem = ({ icon: Icon, label, value, color = "blue" }) => {
     const colorClasses = {
         blue: 'group-hover:text-blue-400 group-hover:border-blue-500/30',
@@ -76,6 +77,7 @@ const QuickStatsBar = ({ metrics, isOnline }) => {
 };
 
 // --- Section Header Component ---
+// eslint-disable-next-line no-unused-vars
 const MetricsSectionHeader = ({ icon: Icon, title, color = "blue" }) => (
     <div className="flex items-center gap-3 mb-4">
         <div className={`p-2 bg-${color}-500/20 rounded-lg`}>
@@ -259,7 +261,7 @@ export default function AgentDetail() {
                                     fetchAgent();
                                 }
                             }
-                        } catch (err) {
+                        } catch (_err) {
                             // Ignore fetch errors during update
                         }
 

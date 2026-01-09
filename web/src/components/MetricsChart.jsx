@@ -6,6 +6,22 @@ import { format } from 'date-fns';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
+// Custom animated dot for current value (defined outside to avoid re-creation during render)
+const CurrentValueDot = ({ cx, cy, color }) => {
+    if (!cx || !cy) return null;
+    return (
+        <g>
+            {/* Outer glow */}
+            <circle cx={cx} cy={cy} r="12" fill={color} opacity="0.2">
+                <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
+                <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+            </circle>
+            {/* Inner dot */}
+            <circle cx={cx} cy={cy} r="5" fill={color} stroke="white" strokeWidth="2" />
+        </g>
+    );
+};
+
 // Helper to format values dynamically
 const formatValue = (val, type) => {
     if (val === 0) return '0';
@@ -114,22 +130,7 @@ export default function MetricsChart({ agentId, type, status }) {
     const currentValue = data.length > 0 ? data[data.length - 1].value : 0;
     const isOnline = status === 'online';
 
-    // Custom animated dot for current value
-    const CurrentValueDot = (props) => {
-        const { cx, cy } = props;
-        if (!cx || !cy) return null;
-        return (
-            <g>
-                {/* Outer glow */}
-                <circle cx={cx} cy={cy} r="12" fill={color} opacity="0.2">
-                    <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
-                    <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
-                </circle>
-                {/* Inner dot */}
-                <circle cx={cx} cy={cy} r="5" fill={color} stroke="white" strokeWidth="2" />
-            </g>
-        );
-    };
+
 
     return (
         <div className={`bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm p-5 rounded-2xl border shadow-2xl flex flex-col h-80 transition-all ${isOnline ? 'border-white/10 hover:border-white/20' : 'border-red-900/30 opacity-80'}`}>
@@ -286,7 +287,7 @@ export default function MetricsChart({ agentId, type, status }) {
                                 filter={isOnline ? `url(#glow${type})` : undefined}
                                 animationDuration={300}
                                 dot={false}
-                                activeDot={<CurrentValueDot />}
+                                activeDot={(props) => <CurrentValueDot {...props} color={color} />}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import axios from 'axios';
-import { Activity, Clock, Settings as SettingsIcon, Server, Cpu, HardDrive, Wifi, List, Trash2, LogOut, Star, Thermometer, Plus, X, Copy, Check } from 'lucide-react';
+import { Activity, Clock, Settings as SettingsIcon, Server, Cpu, HardDrive, Wifi, List, Trash2, LogOut, Star, Thermometer, Plus, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
 
 // Helper: OS Icon logic
@@ -24,6 +24,11 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         const saved = localStorage.getItem('sentinel_favorites');
         return saved ? JSON.parse(saved) : [];
     });
+
+    // Update All Agents state
+    const [showUpdateAllConfirm, setShowUpdateAllConfirm] = useState(false);
+    const [isUpdatingAll, setIsUpdatingAll] = useState(false);
+    const [updateProgress, setUpdateProgress] = useState({ current: 0, total: 0, completed: [] });
 
     const toggleFavorite = (hostname, e) => {
         e.stopPropagation();
@@ -74,13 +79,43 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         }
     };
 
-    const getInstallCommand = () => {
-        const host = window.location.host; // includes port if present
-        const hostname = window.location.hostname; // just the domain/IP
-        // The script needs server IP and potentially port. 
-        // Our install.sh expects: bash -s <SERVER_IP> [PORT]
-        const port = window.location.port || '80';
+    const handleUpdateAllAgents = async () => {
+        setShowUpdateAllConfirm(false);
+        const onlineAgentsList = agents.filter(a => a.status === 'online');
+        if (onlineAgentsList.length === 0) return;
 
+        setIsUpdatingAll(true);
+        setUpdateProgress({ current: 0, total: onlineAgentsList.length, completed: [] });
+
+        for (let i = 0; i < onlineAgentsList.length; i++) {
+            const agent = onlineAgentsList[i];
+            try {
+                await axios.post(`${API_BASE}/agent/${agent.hostname}/update`);
+                setUpdateProgress(prev => ({
+                    ...prev,
+                    current: i + 1,
+                    completed: [...prev.completed, agent.hostname]
+                }));
+            } catch (err) {
+                console.error(`Failed to update ${agent.hostname}`, err);
+            }
+            // Small delay between updates to prevent overwhelming the server
+            if (i < onlineAgentsList.length - 1) {
+                await new Promise(resolve => setTimeout(resolve, 500));
+            }
+        }
+
+        // Keep progress visible for a moment, then reset
+        setTimeout(() => {
+            setIsUpdatingAll(false);
+            setUpdateProgress({ current: 0, total: 0, completed: [] });
+        }, 3000);
+    };
+
+    const getInstallCommand = () => {
+        const host = window.location.host;
+        const hostname = window.location.hostname;
+        const port = window.location.port || '80';
         return `curl -sL http://${host}/downloads/install.sh | sudo bash -s ${hostname} ${port}`;
     };
 
@@ -90,7 +125,6 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
             if (navigator.clipboard && window.isSecureContext) {
                 await navigator.clipboard.writeText(text);
             } else {
-                // Fallback for non-secure contexts (HTTP)
                 const textArea = document.createElement("textarea");
                 textArea.value = text;
                 textArea.style.position = "fixed";
@@ -106,7 +140,6 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                 }
                 document.body.removeChild(textArea);
             }
-            // Always show success state for better UX, even if fallback used
             setCopied(true);
             setTimeout(() => setCopied(false), 2000);
         } catch (err) {
@@ -138,7 +171,6 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
 
         connectSSE();
 
-        // Also poll every 10s as fallback
         const pollInterval = setInterval(() => {
             fetchAgents();
             fetchAuditLogs();
@@ -163,12 +195,10 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
     const onlineAgents = agents.filter(a => a.status === 'online');
     const offlineCount = totalAgents - onlineAgents.length;
 
-    // Average CPU (Online only)
     const avgCpu = onlineAgents.length > 0
         ? onlineAgents.reduce((acc, a) => acc + (a.metrics?.cpu_percent || 0), 0) / onlineAgents.length
         : 0;
 
-    // Average RAM (Online only)
     const avgRam = onlineAgents.length > 0
         ? onlineAgents.reduce((acc, a) => acc + (a.metrics?.ram_used_percent || 0), 0) / onlineAgents.length
         : 0;
@@ -177,8 +207,8 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         <div className="p-4 md:p-8 bg-bg-primary min-h-screen text-text-primary relative overflow-hidden transition-colors duration-300">
             {/* Background decoration */}
             <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl" />
-                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl" />
+                <div className="absolute top-0 left-1/4 w-[500px] h-[500px] bg-blue-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '8s' }} />
+                <div className="absolute bottom-0 right-1/4 w-[500px] h-[500px] bg-purple-500/10 rounded-full blur-3xl animate-pulse" style={{ animationDuration: '10s' }} />
             </div>
 
             {/* SETTINGS MODAL */}
@@ -187,13 +217,13 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
             {/* ADD AGENT MODAL */}
             {showAddAgent && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowAddAgent(false)}>
-                    <div className="glass-panel p-6 rounded-2xl max-w-lg w-full" onClick={e => e.stopPropagation()}>
+                    <div className="glass-panel p-6 rounded-2xl max-w-lg w-full animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
                         <div className="flex items-center justify-between mb-6">
                             <h2 className="text-xl font-bold flex items-center gap-2">
                                 <Plus className="w-5 h-5 text-green-400" />
                                 Add New Agent
                             </h2>
-                            <button onClick={() => setShowAddAgent(false)} className="text-gray-500 hover:text-white">
+                            <button onClick={() => setShowAddAgent(false)} className="text-gray-500 hover:text-white transition">
                                 <X className="w-5 h-5" />
                             </button>
                         </div>
@@ -225,10 +255,53 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                 </div>
             )}
 
+            {/* UPDATE ALL AGENTS MODAL */}
+            {showUpdateAllConfirm && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setShowUpdateAllConfirm(false)}>
+                    <div className="glass-panel p-6 rounded-2xl max-w-md w-full animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="p-3 bg-blue-500/20 rounded-xl">
+                                <RefreshCw className="w-6 h-6 text-blue-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-xl font-bold">Update All Agents</h2>
+                                <p className="text-text-secondary text-sm">{onlineAgents.length} agents will be updated</p>
+                            </div>
+                        </div>
+
+                        <div className="bg-black/30 rounded-xl p-4 mb-6 border border-white/5">
+                            <p className="text-sm text-gray-300 mb-3">The following agents will receive updates:</p>
+                            <div className="flex flex-wrap gap-2 max-h-32 overflow-y-auto">
+                                {onlineAgents.map(a => (
+                                    <span key={a.hostname} className="px-2 py-1 bg-white/5 rounded text-xs font-mono text-gray-400 border border-white/10">
+                                        {a.hostname}
+                                    </span>
+                                ))}
+                            </div>
+                        </div>
+
+                        <div className="flex gap-3">
+                            <button
+                                onClick={() => setShowUpdateAllConfirm(false)}
+                                className="flex-1 glass-button py-3 rounded-xl font-medium"
+                            >
+                                Cancel
+                            </button>
+                            <button
+                                onClick={handleUpdateAllAgents}
+                                className="flex-1 bg-blue-600 hover:bg-blue-500 py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2"
+                            >
+                                <RefreshCw className="w-4 h-4" /> Update All
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* DELETE CONFIRM MODAL */}
             {deleteConfirm && (
                 <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={() => setDeleteConfirm(null)}>
-                    <div className="glass-panel p-6 rounded-2xl max-w-sm w-full" onClick={e => e.stopPropagation()}>
+                    <div className="glass-panel p-6 rounded-2xl max-w-sm w-full animate-in fade-in zoom-in-95" onClick={e => e.stopPropagation()}>
                         <h2 className="text-xl font-bold text-red-400 mb-4">Delete Agent?</h2>
                         <p className="text-text-secondary text-sm mb-6">
                             Remove <strong className="text-white">{deleteConfirm}</strong> from monitoring?
@@ -241,13 +314,14 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                 </div>
             )}
 
-            <header className="mb-6 md:mb-10 glass-panel p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 relative z-10">
+            {/* HEADER */}
+            <header className="mb-6 md:mb-10 glass-panel p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 relative z-10 border border-white/5 hover:border-white/10 transition-colors">
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="p-3 bg-blue-500/20 rounded-xl shrink-0">
+                    <div className="p-3 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-xl shrink-0 shadow-lg shadow-blue-500/10">
                         <Activity className="text-blue-400 w-6 h-6 md:w-8 md:h-8" />
                     </div>
                     <div>
-                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight">Sentinel Dashboard</h1>
+                        <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Sentinel Dashboard</h1>
                         <p className="text-gray-500 text-xs md:text-sm">System Monitoring & Management</p>
                     </div>
                 </div>
@@ -260,26 +334,45 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                             placeholder="Search agents..."
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-black/30 border border-white/10 text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-blue-500 placeholder-gray-500"
+                            className="w-full bg-black/30 border border-white/10 text-white text-sm rounded-xl pl-10 pr-4 py-2.5 focus:outline-none focus:border-blue-500/50 focus:ring-2 focus:ring-blue-500/20 placeholder-gray-500 transition-all"
                         />
                         <Server className="absolute left-3 top-2.5 w-4 h-4 text-gray-500" />
                     </div>
 
-                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                    <div className="flex items-center gap-2 w-full sm:w-auto">
+                        {/* UPDATE ALL AGENTS BUTTON */}
+                        {onlineAgents.length > 0 && (
+                            <button
+                                onClick={() => setShowUpdateAllConfirm(true)}
+                                disabled={isUpdatingAll}
+                                className={`glass-button px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 transition-all ${isUpdatingAll
+                                        ? 'text-yellow-400 border-yellow-500/30 bg-yellow-500/10'
+                                        : 'text-blue-400 hover:bg-blue-500/10 hover:border-blue-500/30'
+                                    }`}
+                                title="Update all online agents"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isUpdatingAll ? 'animate-spin' : ''}`} />
+                                {isUpdatingAll ? (
+                                    <span className="hidden sm:inline text-sm">{updateProgress.current}/{updateProgress.total}</span>
+                                ) : (
+                                    <span className="hidden sm:inline text-sm">Update All</span>
+                                )}
+                            </button>
+                        )}
 
                         {/* ADD AGENT BUTTON */}
                         <button
                             onClick={() => setShowAddAgent(true)}
-                            className="glass-button px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-green-400 hover:bg-green-500/10 hover:border-green-500/30"
+                            className="glass-button px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 text-green-400 hover:bg-green-500/10 hover:border-green-500/30 transition-all"
                         >
                             <Plus className="w-5 h-5" />
-                            <span className="hidden sm:inline">Add Agent</span>
+                            <span className="hidden sm:inline">Add</span>
                         </button>
 
                         {/* SETTINGS BUTTON */}
                         <button
                             onClick={() => setIsSettingsOpen(true)}
-                            className="glass-button px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 text-text-secondary hover:text-text-primary"
+                            className="glass-button p-2.5 rounded-xl flex items-center justify-center text-text-secondary hover:text-text-primary transition-all"
                         >
                             <SettingsIcon className="w-5 h-5" />
                         </button>
@@ -287,69 +380,93 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                         {/* LOGOUT BUTTON */}
                         <button
                             onClick={onLogout}
-                            className="glass-button px-4 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 text-text-secondary hover:text-red-400 whitespace-nowrap"
+                            className="glass-button px-3 py-2.5 rounded-xl flex items-center justify-center gap-2 hover:bg-red-500/10 hover:border-red-500/30 text-text-secondary hover:text-red-400 whitespace-nowrap transition-all"
                         >
-                            <LogOut className="w-5 h-5" /> Logout
+                            <LogOut className="w-5 h-5" />
+                            <span className="hidden md:inline">Logout</span>
                         </button>
                     </div>
                 </div>
             </header>
 
+            {/* Update Progress Toast */}
+            {isUpdatingAll && (
+                <div className="fixed bottom-6 right-6 z-50 glass-panel px-4 py-3 rounded-xl border border-blue-500/30 shadow-xl animate-in slide-in-from-bottom-4">
+                    <div className="flex items-center gap-3">
+                        <RefreshCw className="w-5 h-5 text-blue-400 animate-spin" />
+                        <div>
+                            <p className="text-sm font-medium text-white">Updating Agents...</p>
+                            <p className="text-xs text-gray-400">{updateProgress.current} of {updateProgress.total} complete</p>
+                        </div>
+                    </div>
+                    <div className="mt-2 h-1.5 bg-gray-700 rounded-full overflow-hidden">
+                        <div
+                            className="h-full bg-gradient-to-r from-blue-500 to-blue-400 rounded-full transition-all duration-300"
+                            style={{ width: `${(updateProgress.current / updateProgress.total) * 100}%` }}
+                        />
+                    </div>
+                </div>
+            )}
+
             {/* STATS OVERVIEW */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10 relative z-10">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6 mb-8 md:mb-10 relative z-10">
                 {/* TOTAL AGENTS */}
-                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
-                    <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400 group-hover:bg-blue-500/30 transition-colors">
+                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="p-3 bg-blue-500/20 rounded-xl text-blue-400 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-blue-500/20 transition-all">
                         <Server className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="relative">
                         <p className="text-text-secondary text-xs font-bold uppercase tracking-wider">Total Agents</p>
                         <p className="text-2xl font-bold text-text-primary mt-0.5">{totalAgents}</p>
                     </div>
                 </div>
 
                 {/* ONLINE / OFFLINE */}
-                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
-                    <div className="p-3 bg-green-500/20 rounded-xl text-green-400 group-hover:bg-green-500/30 transition-colors">
+                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group hover:border-green-500/30 transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-br from-green-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="p-3 bg-green-500/20 rounded-xl text-green-400 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-green-500/20 transition-all">
                         <Wifi className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="relative">
                         <p className="text-text-secondary text-xs font-bold uppercase tracking-wider">System Status</p>
                         <div className="flex items-center gap-3 mt-0.5">
                             <span className="text-2xl font-bold text-text-primary">{onlineAgents.length} <span className="text-sm font-normal text-text-secondary">Online</span></span>
-                            {offlineCount > 0 && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20">{offlineCount} Off</span>}
+                            {offlineCount > 0 && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded border border-red-500/20 animate-pulse">{offlineCount} Off</span>}
                         </div>
                     </div>
                 </div>
 
                 {/* AVG CPU */}
-                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 group">
-                    <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400 group-hover:bg-indigo-500/30 transition-colors">
+                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 group hover:border-indigo-500/30 transition-all relative overflow-hidden">
+                    <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="p-3 bg-indigo-500/20 rounded-xl text-indigo-400 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-indigo-500/20 transition-all">
                         <Cpu className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="relative">
                         <p className="text-text-secondary text-xs font-bold uppercase tracking-wider">Avg CPU Load</p>
                         <p className="text-2xl font-bold text-text-primary mt-0.5">{avgCpu.toFixed(1)}%</p>
                     </div>
                 </div>
 
                 {/* AVG RAM */}
-                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group">
-                    <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400 group-hover:bg-purple-500/30 transition-colors">
+                <div className="glass-card p-5 rounded-2xl flex items-center gap-4 relative overflow-hidden group hover:border-purple-500/30 transition-all">
+                    <div className="absolute inset-0 bg-gradient-to-br from-purple-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                    <div className="p-3 bg-purple-500/20 rounded-xl text-purple-400 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-purple-500/20 transition-all">
                         <HardDrive className="w-6 h-6" />
                     </div>
-                    <div>
+                    <div className="relative">
                         <p className="text-text-secondary text-xs font-bold uppercase tracking-wider">Avg RAM Usage</p>
                         <p className="text-2xl font-bold text-text-primary mt-0.5">{avgRam.toFixed(1)}%</p>
                     </div>
                 </div>
             </div>
 
-            <div className="flex flex-col lg:flex-row gap-8 relative z-10">
+            <div className="flex flex-col lg:flex-row gap-6 md:gap-8 relative z-10">
                 {/* LEFT: AGENT GRID */}
                 <div className="flex-1">
                     <h2 className="text-sm font-bold mb-4 flex items-center gap-2 text-text-secondary uppercase tracking-wider"><Server className="w-4 h-4" /> Managed Agents</h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4 md:gap-6">
                         {agents
                             .filter(agent => agent.hostname.toLowerCase().includes(searchTerm.toLowerCase()) || agent.ip_address.includes(searchTerm))
                             .sort((a, b) => {
@@ -364,83 +481,77 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                                 const isOnline = agent.status === 'online';
                                 const { icon: OSIcon, color: iconColor } = getOSIcon(agent);
                                 const isWindows = agent.os?.toLowerCase().includes('windows');
-                                const loadLabel = isWindows ? "CPU Queue" : "Load (1m)";
                                 const loadVal = agent.metrics?.load_1 || 0;
-                                const loadTooltip = "System Load Average. On Linux: Average number of processes waiting for CPU (1 min). On Windows: Processor Queue Length.";
 
                                 return (
                                     <div
                                         key={agent.hostname}
                                         onClick={() => onSelectAgent(agent)}
-                                        className={`glass-card rounded-2xl p-6 hover:bg-bg-card-hover transition cursor-pointer hover:border-blue-500/50 group relative overflow-hidden shadow-lg ${isOnline ? '' : 'opacity-75 border-red-900/30'}`}
+                                        className={`glass-card rounded-2xl p-5 md:p-6 hover:bg-bg-card-hover transition-all cursor-pointer group relative overflow-hidden shadow-lg hover:shadow-xl ${isOnline ? 'hover:border-blue-500/50' : 'opacity-75 border-red-900/30'}`}
                                     >
                                         {/* DYNAMIC BACKGROUND LOGO */}
-                                        <div className={`absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition duration-500 ${isOnline ? iconColor : 'text-text-secondary'}`}>
+                                        <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-15 transition-all duration-500 transform group-hover:scale-110 ${isOnline ? iconColor : 'text-text-secondary'}`}>
                                             <OSIcon className="w-24 h-24" />
                                         </div>
 
-                                        <div className="flex items-center gap-4 mb-6 relative z-10">
-                                            <div className={`p-3 rounded-full transition ${isOnline ? 'bg-gray-700/50 border border-gray-600' : 'bg-gray-800 border border-red-900/30'}`}>
-                                                <OSIcon className={`w-6 h-6 ${isOnline ? iconColor : 'text-gray-500'}`} />
+                                        <div className="flex items-center gap-3 md:gap-4 mb-5 md:mb-6 relative z-10">
+                                            <div className={`p-2.5 md:p-3 rounded-full transition-all ${isOnline ? 'bg-gray-700/50 border border-gray-600 group-hover:border-blue-500/50' : 'bg-gray-800 border border-red-900/30'}`}>
+                                                <OSIcon className={`w-5 h-5 md:w-6 md:h-6 ${isOnline ? iconColor : 'text-gray-500'}`} />
                                             </div>
-                                            <div className="flex-1">
-                                                <h3 className="font-bold text-lg leading-tight text-text-primary">{agent.hostname}</h3>
-                                                <p className="text-text-secondary text-xs font-mono mt-0.5">{agent.ip_address}</p>
+                                            <div className="flex-1 min-w-0">
+                                                <h3 className="font-bold text-base md:text-lg leading-tight text-text-primary truncate">{agent.hostname}</h3>
+                                                <p className="text-text-secondary text-xs font-mono mt-0.5 truncate">{agent.ip_address}</p>
                                             </div>
                                             <button
                                                 onClick={(e) => toggleFavorite(agent.hostname, e)}
                                                 className={`p-2 rounded-lg transition-all ${isFavorite ? 'text-yellow-400 bg-yellow-400/10' : 'text-gray-500 hover:text-yellow-400 hover:bg-yellow-400/10'}`}
                                                 title={isFavorite ? 'Remove from favorites' : 'Add to favorites'}
                                             >
-                                                <Star className={`w-5 h-5 ${isFavorite ? 'fill-current' : ''}`} />
+                                                <Star className={`w-4 h-4 md:w-5 md:h-5 ${isFavorite ? 'fill-current' : ''}`} />
                                             </button>
                                         </div>
 
-                                        {/* METRICS GRID - ENHANCED */}
-                                        <div className="space-y-4 relative z-10">
+                                        {/* METRICS GRID */}
+                                        <div className="space-y-3 md:space-y-4 relative z-10">
                                             {/* Row 1: CPU & RAM */}
-                                            <div className="grid grid-cols-2 gap-3 text-text-secondary">
-                                                {/* CPU */}
-                                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                            <div className="grid grid-cols-2 gap-2 md:gap-3 text-text-secondary">
+                                                <div className="bg-black/20 p-2.5 md:p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-gray-500 text-[10px] uppercase font-bold">CPU</span>
                                                         <Cpu className="w-3 h-3 text-gray-600" />
                                                     </div>
-                                                    <span className={`font-mono text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
+                                                    <span className={`font-mono text-base md:text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
                                                         {isOnline ? `${agent.metrics?.cpu_percent?.toFixed(1) || 0}%` : '--'}
                                                     </span>
                                                 </div>
-                                                {/* RAM */}
-                                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                                <div className="bg-black/20 p-2.5 md:p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-gray-500 text-[10px] uppercase font-bold">RAM</span>
                                                         <Server className="w-3 h-3 text-gray-600" />
                                                     </div>
-                                                    <span className={`font-mono text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
+                                                    <span className={`font-mono text-base md:text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
                                                         {isOnline ? `${agent.metrics?.ram_used_percent?.toFixed(1) || 0}%` : '--'}
                                                     </span>
                                                 </div>
                                             </div>
 
                                             {/* Row 2: Disk & Temp */}
-                                            <div className="grid grid-cols-2 gap-3 text-gray-300">
-                                                {/* DISK */}
-                                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                            <div className="grid grid-cols-2 gap-2 md:gap-3 text-gray-300">
+                                                <div className="bg-black/20 p-2.5 md:p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-gray-500 text-[10px] uppercase font-bold">Disk</span>
                                                         <HardDrive className="w-3 h-3 text-gray-600" />
                                                     </div>
-                                                    <span className={`font-mono text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
+                                                    <span className={`font-mono text-base md:text-lg ${isOnline ? 'text-text-primary' : 'text-text-secondary'}`}>
                                                         {isOnline ? `${agent.metrics?.disk_used_percent?.toFixed(0) || 0}%` : '--'}
                                                     </span>
                                                 </div>
-                                                {/* CPU TEMP */}
-                                                <div className="bg-black/20 p-3 rounded-lg border border-white/5">
+                                                <div className="bg-black/20 p-2.5 md:p-3 rounded-lg border border-white/5 hover:border-white/10 transition-colors">
                                                     <div className="flex justify-between items-start mb-1">
                                                         <span className="text-gray-500 text-[10px] uppercase font-bold">Temp</span>
                                                         <Thermometer className="w-3 h-3 text-gray-600" />
                                                     </div>
-                                                    <span className={`font-mono text-lg ${isOnline && agent.metrics?.temperature_c > 70 ? 'text-red-400' : isOnline && agent.metrics?.temperature_c > 50 ? 'text-yellow-400' : 'text-text-primary'}`}>
+                                                    <span className={`font-mono text-base md:text-lg ${isOnline && agent.metrics?.temperature_c > 70 ? 'text-red-400' : isOnline && agent.metrics?.temperature_c > 50 ? 'text-yellow-400' : 'text-text-primary'}`}>
                                                         {isOnline && agent.metrics?.temperature_c ? `${agent.metrics.temperature_c.toFixed(0)}°C` : '--'}
                                                     </span>
                                                 </div>
@@ -453,7 +564,7 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                                                         <Clock className="w-3 h-3" />
                                                         <span>{isOnline && agent.boot_time ? formatDistanceToNow(new Date(agent.boot_time * 1000)) : '--'}</span>
                                                     </div>
-                                                    <div className={`flex items-center gap-1 ${getLoadColor(loadVal)}`} title={loadTooltip}>
+                                                    <div className={`flex items-center gap-1 ${getLoadColor(loadVal)}`} title="System Load Average">
                                                         <Activity className="w-3 h-3" />
                                                         <span>{isOnline ? loadVal.toFixed(2) : '--'}</span>
                                                     </div>
@@ -468,11 +579,15 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                                             </div>
                                         </div>
 
-                                        <div className="absolute top-4 right-4 animate-pulse">
+                                        {/* Status Indicator */}
+                                        <div className="absolute top-4 right-4">
                                             {isOnline ? (
-                                                <span className="w-2.5 h-2.5 rounded-full bg-green-500 block shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+                                                <span className="relative flex h-3 w-3">
+                                                    <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
+                                                    <span className="relative inline-flex rounded-full h-3 w-3 bg-green-500 shadow-[0_0_10px_rgba(34,197,94,0.5)]"></span>
+                                                </span>
                                             ) : (
-                                                <span className="w-2.5 h-2.5 rounded-full bg-red-500 block"></span>
+                                                <span className="w-3 h-3 rounded-full bg-red-500 block"></span>
                                             )}
                                         </div>
                                     </div>
@@ -482,6 +597,12 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                             <div className="col-span-full flex flex-col items-center justify-center py-12 text-text-secondary border border-dashed border-border-color rounded-2xl bg-bg-card">
                                 <Activity className="w-12 h-12 mb-4 opacity-20" />
                                 <p className="text-lg font-medium">No agents connected.</p>
+                                <button
+                                    onClick={() => setShowAddAgent(true)}
+                                    className="mt-4 px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-sm font-medium flex items-center gap-2"
+                                >
+                                    <Plus className="w-4 h-4" /> Add Your First Agent
+                                </button>
                             </div>
                         )}
                     </div>
@@ -504,17 +625,35 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                             <div className="text-center py-10 text-text-secondary text-sm">No recent activity.</div>
                         ) : (
                             <div className="space-y-4">
-                                {auditLogs.map((log) => (
-                                    <div key={log.ID} className="relative pl-4 border-l-2 border-border-color">
-                                        <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-blue-500 ring-2 ring-bg-primary"></div>
-                                        <div className="flex justify-between items-start">
-                                            <span className="text-xs font-mono text-text-secondary">{formatDistanceToNow(new Date(log.Timestamp * 1000), { addSuffix: true })}</span>
+                                {auditLogs.map((log, index) => {
+                                    // Color based on action type
+                                    const actionColors = {
+                                        'agent_connected': 'bg-green-500',
+                                        'agent_disconnected': 'bg-red-500',
+                                        'agent_registered': 'bg-blue-500',
+                                        'update_started': 'bg-yellow-500',
+                                        'reboot': 'bg-orange-500',
+                                        'shutdown': 'bg-red-600',
+                                        'default': 'bg-blue-500'
+                                    };
+                                    const dotColor = actionColors[log.Action] || actionColors.default;
+
+                                    return (
+                                        <div
+                                            key={log.ID}
+                                            className="relative pl-4 border-l-2 border-border-color hover:border-white/20 transition-colors"
+                                            style={{ animationDelay: `${index * 50}ms` }}
+                                        >
+                                            <div className={`absolute -left-[5px] top-1.5 w-2 h-2 rounded-full ${dotColor} ring-2 ring-bg-primary`}></div>
+                                            <div className="flex justify-between items-start">
+                                                <span className="text-xs font-mono text-text-secondary">{formatDistanceToNow(new Date(log.Timestamp * 1000), { addSuffix: true })}</span>
+                                            </div>
+                                            <p className="text-sm font-medium text-text-primary mt-0.5 capitalize">{log.Action.replace('_', ' ')}</p>
+                                            <p className="text-xs text-text-secondary mt-0.5 font-mono">{log.Target}</p>
+                                            {log.Details && <p className="text-xs text-text-secondary mt-1">{log.Details}</p>}
                                         </div>
-                                        <p className="text-sm font-medium text-text-primary mt-0.5 capitalize">{log.Action.replace('_', ' ')}</p>
-                                        <p className="text-xs text-text-secondary mt-0.5 font-mono">{log.Target}</p>
-                                        {log.Details && <p className="text-xs text-text-secondary mt-1">{log.Details}</p>}
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         )}
                     </div>

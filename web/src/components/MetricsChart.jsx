@@ -1,19 +1,18 @@
 import React, { useEffect, useState } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceDot } from 'recharts';
 import axios from 'axios';
 import { Cpu, HardDrive, Thermometer, Activity, Upload, Download } from 'lucide-react';
 import { format } from 'date-fns';
 
 const API_BASE = import.meta.env.VITE_API_BASE || "/api";
 
-// status prop added
 // Helper to format values dynamically
 const formatValue = (val, type) => {
     if (val === 0) return '0';
 
     // Disk: Base is MB/s. Convert to appropriate unit.
     if (type === 'disk_read' || type === 'disk_write') {
-        if (val < 0.001) return '0 B/s'; // < 1KB/s
+        if (val < 0.001) return '0 B/s';
         if (val < 1) return `${(val * 1024).toFixed(1)} KB/s`;
         return `${val.toFixed(1)} MB/s`;
     }
@@ -47,11 +46,11 @@ export default function MetricsChart({ agentId, type, status }) {
     const { color, title, icon: Icon, unit } = config[type] || config.cpu;
 
     const timeRanges = [
-        { label: '1M', value: '1m' },
         { label: '1H', value: '1h' },
         { label: '6H', value: '6h' },
-        { label: '12H', value: '12h' },
         { label: '24H', value: '24h' },
+        { label: '7D', value: '7d' },
+        { label: '30D', value: '30d' },
     ];
 
     useEffect(() => {
@@ -64,14 +63,18 @@ export default function MetricsChart({ agentId, type, status }) {
                         if (type === 'cpu') val = d.cpu_usage;
                         else if (type === 'ram') val = d.ram_usage;
                         else if (type === 'temp') val = d.temperature;
-                        else if (type === 'net_down') val = (d.net_recv || 0) / 1024; // To KB/s
-                        else if (type === 'net_up') val = (d.net_sent || 0) / 1024;   // To KB/s
-                        else if (type === 'disk_read') val = d.disk_read_mbps;        // Already MB/s
-                        else if (type === 'disk_write') val = d.disk_write_mbps;      // Already MB/s
+                        else if (type === 'net_down') val = (d.net_recv || 0) / 1024;
+                        else if (type === 'net_up') val = (d.net_sent || 0) / 1024;
+                        else if (type === 'disk_read') val = d.disk_read_mbps;
+                        else if (type === 'disk_write') val = d.disk_write_mbps;
                         return {
                             time: d.time,
                             value: val,
-                            formattedTime: format(new Date(d.time), duration === '24h' || duration === '12h' ? 'HH:mm' : 'HH:mm:ss')
+                            formattedTime: format(
+                                new Date(d.time),
+                                duration === '7d' || duration === '30d' ? 'MM/dd HH:mm' :
+                                    duration === '24h' ? 'HH:mm' : 'HH:mm:ss'
+                            )
                         };
                     })
                     .filter(d => d.value !== undefined && d.value !== null);
@@ -85,16 +88,17 @@ export default function MetricsChart({ agentId, type, status }) {
         };
 
         fetchHistory();
-        const interval = setInterval(fetchHistory, 5000);
+        // Adjust polling based on duration - longer durations need less frequent updates
+        const pollInterval = duration === '7d' || duration === '30d' ? 60000 : 10000;
+        const interval = setInterval(fetchHistory, pollInterval);
         return () => clearInterval(interval);
     }, [agentId, type, duration]);
 
-    // Fetch stats for CPU, RAM, Temp, Disk
+    // Fetch stats for CPU, RAM, Temp (stats only available for these types)
     useEffect(() => {
         const fetchStats = async () => {
-            // Only fetch for relevant types
+            // Stats API only supports cpu, ram, temp
             if (!['cpu', 'ram', 'temp'].includes(type)) return;
-
             try {
                 const res = await axios.get(`${API_BASE}/agent/${agentId}/stats?range=${duration}`);
                 setStats(res.data);
@@ -103,7 +107,6 @@ export default function MetricsChart({ agentId, type, status }) {
             }
         };
         fetchStats();
-        // Also refresh stats when history refreshes
         const interval = setInterval(fetchStats, 5000);
         return () => clearInterval(interval);
     }, [agentId, duration, type]);
@@ -111,37 +114,61 @@ export default function MetricsChart({ agentId, type, status }) {
     const currentValue = data.length > 0 ? data[data.length - 1].value : 0;
     const isOnline = status === 'online';
 
+    // Custom animated dot for current value
+    const CurrentValueDot = (props) => {
+        const { cx, cy } = props;
+        if (!cx || !cy) return null;
+        return (
+            <g>
+                {/* Outer glow */}
+                <circle cx={cx} cy={cy} r="12" fill={color} opacity="0.2">
+                    <animate attributeName="r" values="8;14;8" dur="2s" repeatCount="indefinite" />
+                    <animate attributeName="opacity" values="0.3;0.1;0.3" dur="2s" repeatCount="indefinite" />
+                </circle>
+                {/* Inner dot */}
+                <circle cx={cx} cy={cy} r="5" fill={color} stroke="white" strokeWidth="2" />
+            </g>
+        );
+    };
+
     return (
-        <div className={`bg-gray-800 p-5 rounded-xl border shadow-lg flex flex-col h-80 transition-all ${isOnline ? 'border-gray-700' : 'border-red-900/30 opacity-80'}`}>
+        <div className={`bg-gradient-to-br from-gray-800/90 to-gray-900/90 backdrop-blur-sm p-5 rounded-2xl border shadow-2xl flex flex-col h-80 transition-all ${isOnline ? 'border-white/10 hover:border-white/20' : 'border-red-900/30 opacity-80'}`}>
+            {/* Header */}
             <div className="flex flex-wrap justify-between items-start mb-4 gap-4">
                 <div>
-                    <div className="flex items-center gap-2 text-gray-400 text-sm font-medium mb-1">
-                        <Icon className="w-4 h-4" style={{ color: color }} />
-                        {title}
+                    <div className="flex items-center gap-2 text-sm font-medium mb-1" style={{ color: color }}>
+                        <div className="p-1.5 rounded-lg" style={{ backgroundColor: `${color}20` }}>
+                            <Icon className="w-4 h-4" />
+                        </div>
+                        <span className="text-gray-300">{title}</span>
                     </div>
 
                     <div className="text-3xl font-bold text-white flex items-baseline gap-1">
                         {loading ? (
-                            <span className="text-lg text-gray-500">Loading...</span>
+                            <div className="flex items-center gap-2">
+                                <div className="w-6 h-6 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: color }} />
+                                <span className="text-lg text-gray-500">Loading...</span>
+                            </div>
                         ) : !isOnline ? (
                             <span className="text-red-400 text-xl font-mono">Offline</span>
                         ) : (
                             <>
-                                {formatValue(currentValue, type)}
+                                <span style={{ textShadow: `0 0 20px ${color}40` }}>{formatValue(currentValue, type)}</span>
                                 {unit && <span className="text-sm text-gray-500 font-normal ml-1">{unit}</span>}
                             </>
                         )}
                     </div>
                 </div>
 
-                <div className="flex bg-gray-900 rounded-lg p-1 border border-gray-700 overflow-x-auto max-w-full">
+                {/* Time Range Selector */}
+                <div className="flex bg-black/40 backdrop-blur-sm rounded-xl p-1 border border-white/10 overflow-x-auto max-w-full">
                     {timeRanges.map((range) => (
                         <button
                             key={range.value}
                             onClick={() => setDuration(range.value)}
-                            className={`px-2 py-1 text-xs font-medium rounded-md transition-colors whitespace-nowrap ${duration === range.value
-                                ? 'bg-gray-700 text-white shadow-sm'
-                                : 'text-gray-500 hover:text-gray-300 hover:bg-gray-800'
+                            className={`px-3 py-1.5 text-xs font-medium rounded-lg transition-all whitespace-nowrap ${duration === range.value
+                                ? 'bg-gradient-to-r from-blue-600 to-blue-500 text-white shadow-lg shadow-blue-500/25'
+                                : 'text-gray-500 hover:text-gray-300 hover:bg-white/5'
                                 }`}
                         >
                             {range.label}
@@ -152,61 +179,82 @@ export default function MetricsChart({ agentId, type, status }) {
 
             {/* Stats Badges */}
             {stats && ['cpu', 'ram', 'temp'].includes(type) && (
-                <div className="flex gap-4 mb-3 text-xs">
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-gray-700/50 rounded-lg">
+                <div className="flex gap-3 mb-3 text-xs">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-gray-700/50 to-gray-800/50 rounded-lg border border-white/5">
                         <span className="text-gray-500">Avg</span>
-                        <span className="text-white font-medium">
+                        <span className="text-white font-semibold">
                             {(type === 'cpu' ? stats.cpu?.avg : type === 'ram' ? stats.ram?.avg : stats.temperature?.avg)?.toFixed(1) || '0'}{unit}
                         </span>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-green-500/10 rounded-lg">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-green-500/10 to-green-600/5 rounded-lg border border-green-500/20">
                         <span className="text-green-400">Min</span>
-                        <span className="text-white font-medium">
+                        <span className="text-white font-semibold">
                             {(type === 'cpu' ? stats.cpu?.min : type === 'ram' ? stats.ram?.min : stats.temperature?.min)?.toFixed(1) || '0'}{unit}
                         </span>
                     </div>
-                    <div className="flex items-center gap-1.5 px-2 py-1 bg-red-500/10 rounded-lg">
+                    <div className="flex items-center gap-1.5 px-3 py-1.5 bg-gradient-to-r from-red-500/10 to-red-600/5 rounded-lg border border-red-500/20">
                         <span className="text-red-400">Max</span>
-                        <span className="text-white font-medium">
+                        <span className="text-white font-semibold">
                             {(type === 'cpu' ? stats.cpu?.max : type === 'ram' ? stats.ram?.max : stats.temperature?.max)?.toFixed(1) || '0'}{unit}
                         </span>
                     </div>
                 </div>
             )}
 
+            {/* Chart Area */}
             <div className="flex-1 w-full min-h-0">
                 {loading && data.length === 0 ? (
-                    <div className="h-full flex items-center justify-center text-gray-500 animate-pulse">Loading...</div>
+                    <div className="h-full flex items-center justify-center">
+                        <div className="w-10 h-10 border-2 border-t-transparent rounded-full animate-spin" style={{ borderColor: color }} />
+                    </div>
                 ) : data.length === 0 ? (
                     <div className="h-full flex flex-col items-center justify-center text-gray-500 gap-2">
                         <Activity className="w-8 h-8 opacity-20" />
-                        <span className="text-sm">No data</span>
+                        <span className="text-sm">No data available</span>
                     </div>
                 ) : (
                     <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={data}>
                             <defs>
-                                <linearGradient id={`color${type}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={color} stopOpacity={0.3} />
-                                    <stop offset="95%" stopColor={color} stopOpacity={0} />
+                                {/* Enhanced gradient */}
+                                <linearGradient id={`gradient${type}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="0%" stopColor={color} stopOpacity={0.4} />
+                                    <stop offset="50%" stopColor={color} stopOpacity={0.15} />
+                                    <stop offset="100%" stopColor={color} stopOpacity={0.02} />
                                 </linearGradient>
+                                {/* Glow filter */}
+                                <filter id={`glow${type}`} x="-50%" y="-50%" width="200%" height="200%">
+                                    <feGaussianBlur stdDeviation="2" result="coloredBlur" />
+                                    <feMerge>
+                                        <feMergeNode in="coloredBlur" />
+                                        <feMergeNode in="SourceGraphic" />
+                                    </feMerge>
+                                </filter>
                             </defs>
-                            <CartesianGrid strokeDasharray="3 3" stroke="#374151" vertical={false} />
+                            <CartesianGrid
+                                strokeDasharray="1 6"
+                                stroke="#1f2937"
+                                horizontal={true}
+                                vertical={false}
+                            />
                             <XAxis
                                 dataKey="formattedTime"
-                                stroke="#6b7280"
+                                stroke="#4b5563"
                                 fontSize={10}
                                 tickMargin={10}
                                 minTickGap={30}
+                                axisLine={{ stroke: '#374151' }}
+                                tickLine={{ stroke: '#374151' }}
                             />
                             <YAxis
-                                stroke="#6b7280"
+                                stroke="#4b5563"
                                 fontSize={10}
                                 domain={['auto', 'auto']}
                                 width={40}
+                                axisLine={{ stroke: '#374151' }}
+                                tickLine={{ stroke: '#374151' }}
                                 tickFormatter={(val) => {
                                     if (type === 'disk_read' || type === 'disk_write' || type === 'net_down' || type === 'net_up') {
-                                        // Simplified axis labels
                                         if (val === 0) return '0';
                                         return val < 1 ? val.toFixed(1) : val.toFixed(0);
                                     }
@@ -214,19 +262,31 @@ export default function MetricsChart({ agentId, type, status }) {
                                 }}
                             />
                             <Tooltip
-                                contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', color: '#f3f4f6', borderRadius: '0.5rem' }}
+                                contentStyle={{
+                                    backgroundColor: 'rgba(17, 24, 39, 0.95)',
+                                    borderColor: color,
+                                    borderWidth: '2px',
+                                    borderRadius: '12px',
+                                    boxShadow: `0 0 20px ${color}40`,
+                                    color: '#f3f4f6'
+                                }}
                                 itemStyle={{ color: color }}
                                 formatter={(value) => [formatValue(value, type) + (unit ? unit : ''), title]}
                                 labelStyle={{ color: '#9ca3af' }}
+                                cursor={{ stroke: color, strokeWidth: 1, strokeDasharray: '4 4', strokeOpacity: 0.5 }}
                             />
                             <Area
                                 type="monotone"
                                 dataKey="value"
                                 stroke={isOnline ? color : '#6b7280'}
-                                strokeWidth={2}
+                                strokeWidth={2.5}
+                                strokeLinecap="round"
                                 fillOpacity={1}
-                                fill={`url(#color${type})`}
+                                fill={`url(#gradient${type})`}
+                                filter={isOnline ? `url(#glow${type})` : undefined}
                                 animationDuration={300}
+                                dot={false}
+                                activeDot={<CurrentValueDot />}
                             />
                         </AreaChart>
                     </ResponsiveContainer>

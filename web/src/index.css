@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+/* Dark Theme Only - No theme switching */
+@layer base {
+  :root {
+    --bg-primary: #030712;
+    /* Gray-950 */
+    --bg-secondary: #0f172a;
+    /* Gray-900 */
+    --bg-glass: rgba(17, 24, 39, 0.6);
+    --bg-card: rgba(31, 41, 55, 0.4);
+    --bg-card-hover: rgba(55, 65, 81, 0.4);
+    --text-primary: #f3f4f6;
+    /* Gray-100 */
+    --text-secondary: #9ca3af;
+    /* Gray-400 */
+    --border-color: rgba(255, 255, 255, 0.05);
+    --border-hover: rgba(59, 130, 246, 0.3);
+
+    /* Gradients */
+    --gradient-one: rgba(59, 130, 246, 0.15);
+    --gradient-two: rgba(139, 92, 246, 0.1);
+  }
+}
+
+@theme {
+  --color-bg-primary: var(--bg-primary);
+  --color-bg-secondary: var(--bg-secondary);
+  --color-text-primary: var(--text-primary);
+  --color-text-secondary: var(--text-secondary);
+  --color-border-color: var(--border-color);
+}
+
+@layer components {
+  .glass-panel {
+    background-color: var(--bg-glass);
+    @apply backdrop-blur-md shadow-xl;
+    border: 1px solid var(--border-color);
+  }
+
+  .glass-card {
+    background-color: var(--bg-card);
+    @apply backdrop-blur-sm transition-all duration-300;
+    border: 1px solid var(--border-color);
+  }
+
+  .glass-card:hover {
+    background-color: var(--bg-card-hover);
+    border-color: var(--border-hover);
+  }
+
+  .glass-button {
+    @apply bg-white/5 hover:bg-white/10 border border-white/10 backdrop-blur-sm transition-all active:scale-95 text-[var(--text-primary)];
+  }
+
+  .glass-danger {
+    @apply bg-red-500/10 hover:bg-red-500/20 border border-red-500/20 text-red-400 backdrop-blur-sm;
+  }
+
+  .neon-text {
+    text-shadow: 0 0 10px rgba(59, 130, 246, 0.5);
+  }
+}
+
+body {
+  background-color: var(--bg-primary);
+  color: var(--text-primary);
+  @apply antialiased;
+  background-image:
+    radial-gradient(circle at 50% 0%, var(--gradient-one), transparent 25%),
+    radial-gradient(circle at 0% 50%, var(--gradient-two), transparent 25%);
+  background-attachment: fixed;
+  overflow-x: hidden;
+}
+
+html {
+  overflow-x: hidden;
+}
+
+/* Hide number input spinners */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}

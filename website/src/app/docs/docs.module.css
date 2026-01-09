@@ -1,0 +1,140 @@
+.container {
+    display: flex;
+    min-height: 100vh;
+    margin-top: 60px;
+    /* Space for a fixed header if added later, but fine for now */
+}
+
+.sidebar {
+    width: 280px;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    overflow-y: auto;
+    border-right: 1px solid var(--card-border);
+    padding: 2rem;
+    background: var(--background);
+    flex-shrink: 0;
+}
+
+.sidebarTitle {
+    font-size: 1.25rem;
+    font-weight: 700;
+    margin-bottom: 1.5rem;
+    color: var(--foreground);
+}
+
+.nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.navLink {
+    color: var(--secondary);
+    font-size: 0.95rem;
+    padding: 0.5rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+
+.navLink:hover {
+    background: var(--card-bg);
+    color: var(--foreground);
+}
+
+.activeLink {
+    background: rgba(0, 112, 243, 0.1);
+    color: var(--primary);
+    font-weight: 500;
+}
+
+.content {
+    flex-grow: 1;
+    padding: 4rem;
+    max-width: 900px;
+    margin: 0 auto;
+    line-height: 1.7;
+}
+
+.content h1 {
+    font-size: 2.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 1px solid var(--card-border);
+    padding-bottom: 1rem;
+}
+
+.content h2 {
+    font-size: 1.75rem;
+    margin: 2.5rem 0 1rem;
+    color: var(--foreground);
+}
+
+.content h3 {
+    font-size: 1.4rem;
+    margin: 1.5rem 0 0.75rem;
+    color: var(--foreground);
+}
+
+.content p {
+    margin-bottom: 1rem;
+    color: #c0c0c0;
+}
+
+.content ul,
+.content ol {
+    margin-bottom: 1rem;
+    padding-left: 1.5rem;
+    color: #c0c0c0;
+}
+
+.content li {
+    margin-bottom: 0.5rem;
+}
+
+.codeBlock {
+    background: #111;
+    border: 1px solid var(--card-border);
+    border-radius: 8px;
+    padding: 1rem;
+    overflow-x: auto;
+    margin-bottom: 1.5rem;
+    font-family: 'Fira Code', monospace;
+    font-size: 0.9rem;
+}
+
+.table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 1.5rem;
+    border: 1px solid var(--card-border);
+}
+
+.table th,
+.table td {
+    border: 1px solid var(--card-border);
+    padding: 0.75rem;
+    text-align: left;
+}
+
+.table th {
+    background: var(--card-bg);
+}
+
+@media (max-width: 768px) {
+    .container {
+        flex-direction: column;
+    }
+
+    .sidebar {
+        width: 100%;
+        height: auto;
+        border-right: none;
+        border-bottom: 1px solid var(--card-border);
+        position: relative;
+    }
+
+    .content {
+        padding: 2rem;
+    }
+}

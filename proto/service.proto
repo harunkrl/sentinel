@@ -1,0 +1,147 @@
+syntax = "proto3";
+
+package sentinel;
+
+option go_package = "github.com/gigabyte/sentinel/proto";
+
+service SystemMonitor {
+  rpc StreamTelemetry(stream Telemetry) returns (stream Command);
+}
+
+message Telemetry {
+  string agent_id = 1;
+  int64 timestamp = 2;
+  
+  oneof payload {
+    Handshake handshake = 3;
+    MetricData metrics = 4;
+    CommandResponse response = 5;
+  }
+}
+
+message Handshake {
+  string os = 1;
+  string arch = 2;
+  string hostname = 4;
+  string ip_address = 3;
+  string mac_address = 14; 
+  
+  string cpu_model = 5;
+  int32 cpu_cores = 6;
+  uint64 total_memory = 7;
+  uint64 total_disk = 8;
+  string kernel_version = 9;
+  uint64 boot_time = 10;
+
+  string platform = 11;
+  string platform_version = 12;
+  string virtualization_system = 13;
+}
+
+message MetricData {
+  double cpu_percent = 1;
+  double ram_used_percent = 2;
+  double disk_used_percent = 3;
+  double net_sent_kbps = 4;
+  double net_recv_kbps = 5; 
+  double temperature_c = 6;
+  double net_sent = 7;
+  double net_recv = 8;
+  
+  double load_1 = 9;
+  double load_5 = 10;
+  double load_15 = 11;
+
+  double disk_read_mbps = 12;
+  double disk_write_mbps = 13;
+}
+
+message Command {
+  string id = 1;
+  enum Type {
+    UNKNOWN = 0;
+    KILL_PROCESS = 1;
+    RESTART_AGENT = 2;
+    LIST_PROCESSES = 3;
+    SYSTEM_REBOOT = 4;
+    SYSTEM_SHUTDOWN = 5;
+    SYSTEM_SUSPEND = 10;
+    FETCH_LOGS = 6;
+    LIST_CONTAINERS = 7;
+    DOCKER_ACTION = 8;
+    UPDATE_AGENT = 9;
+    
+    // --- SERVICE MANAGEMENT ---
+    LIST_SERVICES = 11;
+    SERVICE_ACTION = 12;
+  }
+  Type type = 2;
+  oneof payload {
+    KillProcessRequest kill_process = 3;
+    ListProcessesRequest list_processes = 4;
+    FetchLogsRequest fetch_logs = 5;
+    ListContainersRequest list_containers = 6; 
+    DockerActionRequest docker_action = 7;     
+    
+    ListServicesRequest list_services = 8;     // --- NEW ---
+    ServiceActionRequest service_action = 9;   // --- NEW ---
+  }
+}
+
+message KillProcessRequest { int32 pid = 1; }
+message ListProcessesRequest {}
+message FetchLogsRequest { int32 lines = 1; }
+
+message ListContainersRequest {}
+
+// --- NEW SERVICE MESSAGES ---
+message ListServicesRequest {}
+
+message ServiceActionRequest {
+  string service_name = 1;
+  string action = 2; // "start", "stop", "restart", "enable", "disable"
+}
+
+message DockerActionRequest {
+  string container_id = 1;
+  string action = 2; // "start", "stop", "restart"
+}
+
+message CommandResponse {
+  string command_id = 1;
+  bool success = 2;
+  string message = 3;
+  
+  oneof result_data {
+    ProcessList process_list = 4;
+    string log_data = 5;
+    ContainerList container_list = 6; 
+    ServiceList service_list = 7; // --- NEW ---
+  }
+}
+
+message ProcessList { repeated ProcessInfo processes = 1; }
+message ProcessInfo { int32 pid = 1; string name = 2; double cpu_percent = 3; double memory_percent = 4; }
+
+message ContainerList { repeated ContainerInfo containers = 1; }
+
+message ContainerInfo {
+  string id = 1;
+  string name = 2;
+  string image = 3;
+  string state = 4;   // "running", "exited"
+  string status = 5;  // "Up 2 hours"
+  double cpu_percent = 6;
+  uint64 memory_usage = 7; // Bytes
+}
+
+// --- NEW SERVICE TYPES ---
+message ServiceList { repeated ServiceInfo services = 1; }
+
+message ServiceInfo {
+  string name = 1;
+  string description = 2;
+  string load_state = 3;   // "loaded", "not-found"
+  string active_state = 4; // "active", "inactive", "failed"
+  string sub_state = 5;    // "running", "dead"
+}

@@ -1,0 +1,15 @@
+[Unit]
+Description=Sentinel System Monitor Agent
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/local/bin/sentinel-agent
+Restart=always
+RestartSec=5
+# REPLACE_WITH_ACTUAL_IP
+Environment="CORE_ADDRESS={{SERVER_IP}}:50051"
+
+[Install]
+WantedBy=multi-user.target

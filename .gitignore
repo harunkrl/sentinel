@@ -1,0 +1,59 @@
+# Binaries
+bin/
+sentinel-core
+sentinel-agent
+deploy/downloads/
+
+# Dependencies
+node_modules/
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+# OS & Editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+.idea
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Build output
+dist
+dist-ssr
+coverage
+*.local
+
+# Testing
+/cypress/videos/
+/cypress/screenshots/
+
+# Environment Variables
+.env
+.env.*
+!.env.example
+!.env.production.example
+
+# Data & Config
+data/*
+!data/settings.json.example
+*.db
+*.sqlite
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.backup
+
+# Website build
+.next/
+out/

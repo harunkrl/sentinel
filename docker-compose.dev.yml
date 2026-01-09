@@ -1,0 +1,31 @@
+# Development overrides for docker-compose
+# Usage: docker compose -f docker-compose.yml -f docker-compose.dev.yml up
+
+services:
+  influxdb:
+    ports:
+      - "8086:8086" # Expose for local debugging
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+
+  core:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.core
+    ports:
+      - "50051:50051"
+      - "8080:8080" # Expose for direct API access
+    environment:
+      - CORS_ALLOWED_ORIGINS=* # Allow all origins in dev
+      - GIN_MODE=debug # Verbose logging
+    volumes:
+      - ./data:/data # Local data directory for easier debugging
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    ports:
+      - "3000:80"
+    environment:
+      - NODE_ENV=development

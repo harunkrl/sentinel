@@ -1,0 +1,60 @@
+services:
+  influxdb:
+    image: influxdb:2.7
+    container_name: sentinel_influx
+    ports:
+      - "8086:8086"
+    environment:
+      - DOCKER_INFLUXDB_INIT_MODE=setup
+      - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME}
+      - DOCKER_INFLUXDB_INIT_PASSWORD=${DOCKER_INFLUXDB_INIT_PASSWORD}
+      - DOCKER_INFLUXDB_INIT_ORG=${DOCKER_INFLUXDB_INIT_ORG}
+      - DOCKER_INFLUXDB_INIT_BUCKET=${DOCKER_INFLUXDB_INIT_BUCKET}
+      - DOCKER_INFLUXDB_INIT_ADMIN_TOKEN=${DOCKER_INFLUXDB_INIT_ADMIN_TOKEN}
+    volumes:
+      - influxdb_data:/var/lib/influxdb2
+    deploy:
+      resources:
+        limits:
+          memory: 1G
+    restart: always
+
+  core:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.core
+    container_name: sentinel_core
+    ports:
+      - "50051:50051"
+      - "8080:8080"
+    environment:
+      - INFLUXDB_URL=${INFLUXDB_URL}
+      - INFLUXDB_TOKEN=${INFLUXDB_TOKEN}
+      - INFLUXDB_ORG=${INFLUXDB_ORG}
+      - INFLUXDB_BUCKET=${INFLUXDB_BUCKET}
+      - NTFY_TOPIC=${NTFY_TOPIC}
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-*}
+      - JWT_SECRET=${JWT_SECRET}
+      - DATA_DIR=/data
+    volumes:
+      - sentinel_data:/data
+    depends_on:
+      - influxdb
+    restart: always
+
+  web:
+    build:
+      context: .
+      dockerfile: deploy/Dockerfile.web
+    container_name: sentinel_web
+    # Ports defined in dev/prod overrides
+    depends_on:
+      - core
+    restart: always
+    volumes:
+      # Mount binaries directory to Nginx for agent downloads
+      - ./deploy/downloads:/usr/share/nginx/html/downloads:ro
+
+volumes:
+  influxdb_data:
+  sentinel_data:

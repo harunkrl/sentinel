@@ -605,4 +605,4 @@ This document comprehensively explains the technical details of the Sentinel pro
 - **Type Safety**: Protobuf and TypeScript
 - **Security First**: JWT, rate limiting, bcrypt
 
-Questions? [GitHub Issues](https://github.com/yourusername/sentinel/issues)
+Questions? [GitHub Issues](https://github.com/harunkrl/sentinel/issues)

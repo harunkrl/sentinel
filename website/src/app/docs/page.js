@@ -379,8 +379,9 @@ export default function Docs() {
                         </button>
 
                         <a href="/" className="flex items-center gap-2 sm:gap-3 text-white hover:opacity-80 transition">
-                            <div className="w-7 h-7 sm:w-8 sm:h-8 text-[#0da6f2] flex items-center justify-center rounded-lg bg-[#0da6f2]/10">
-                                <Shield className="w-5 h-5 sm:w-6 sm:h-6" />
+                            <div className="w-8 h-8 sm:w-13 sm:h-13 flex items-center justify-center rounded-xl bg-[#0da6f2]/10 relative group">
+                                <div className="absolute inset-0 bg-primary/40 blur-lg rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                                <img src="/logo.svg" alt="Sentinel Logo" className="w-6 h-6 sm:w-10 sm:h-10 relative drop-shadow-[0_0_5px_rgba(13,166,242,0.5)]" />
                             </div>
                             <h2 className="text-white text-lg sm:text-xl font-bold tracking-tight">Sentinel Docs</h2>
                         </a>

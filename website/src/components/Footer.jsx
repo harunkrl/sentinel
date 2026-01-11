@@ -10,8 +10,9 @@ export default function Footer() {
                     {/* Brand */}
                     <div className="col-span-1">
                         <Link href="/" className="flex items-center gap-2 mb-6">
-                            <div className="text-primary">
-                                <Shield className="w-6 h-6" />
+                            <div className="relative">
+                                <div className="absolute inset-0 bg-primary/30 blur-lg rounded-full opacity-50"></div>
+                                <img src="/logo.svg" alt="Sentinel Logo" className="w-12 h-12 relative drop-shadow-[0_0_5px_rgba(13,166,242,0.5)]" />
                             </div>
                             <span className="text-xl font-bold tracking-tight text-white">Sentinel</span>
                         </Link>

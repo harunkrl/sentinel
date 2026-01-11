@@ -42,8 +42,9 @@ export default function Login({ onLoginSuccess }) {
             <div className="glass-panel p-8 rounded-2xl shadow-2xl w-full max-w-md relative z-10">
                 {/* Logo & Title */}
                 <div className="flex flex-col items-center mb-8">
-                    <div className="p-4 bg-blue-500/20 rounded-2xl mb-4 backdrop-blur-sm">
-                        <Activity className="w-10 h-10 text-blue-400" />
+                    <div className="p-4 bg-blue-500/10 rounded-2xl mb-4 backdrop-blur-sm border border-blue-500/20 relative">
+                        <div className="absolute inset-0 bg-blue-500/30 blur-xl rounded-full opacity-50 animate-pulse"></div>
+                        <img src="/logo.svg" alt="Sentinel Logo" className="w-20 h-20 relative drop-shadow-[0_0_10px_rgba(13,166,242,0.6)]" />
                     </div>
                     <h1 className="text-3xl font-bold text-text-primary tracking-tight">Sentinel</h1>
                     <p className="text-text-secondary text-sm mt-1">System Monitoring and Management</p>

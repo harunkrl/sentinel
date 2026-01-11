@@ -320,8 +320,9 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
             {/* HEADER */}
             <header className="mb-6 md:mb-10 glass-panel p-4 md:p-6 rounded-2xl flex flex-col md:flex-row items-center justify-between gap-4 md:gap-6 relative z-10 border border-white/5 hover:border-white/10 transition-colors">
                 <div className="flex items-center gap-4 w-full md:w-auto">
-                    <div className="p-3 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-xl shrink-0 shadow-lg shadow-blue-500/10">
-                        <Activity className="text-blue-400 w-6 h-6 md:w-8 md:h-8" />
+                    <div className="p-3 bg-gradient-to-br from-blue-500/30 to-blue-600/20 rounded-xl shrink-0 shadow-lg shadow-blue-500/10 relative">
+                        <div className="absolute inset-0 bg-blue-500/30 blur-md rounded-full opacity-50"></div>
+                        <img src="/logo.svg" alt="Sentinel Logo" className="w-8 h-8 md:w-13 md:h-13 relative drop-shadow-[0_0_5px_rgba(13,166,242,0.5)]" />
                     </div>
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Sentinel Dashboard</h1>

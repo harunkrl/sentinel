@@ -9,8 +9,8 @@ export default function Header() {
                     {/* Logo */}
                     <Link href="/" className="flex items-center gap-2.5 group">
                         <div className="relative">
-                            <div className="absolute inset-0 bg-primary/30 blur-lg rounded-full opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                            <Shield className="w-7 h-7 sm:w-8 sm:h-8 text-primary relative" />
+                            <div className="absolute inset-0 bg-primary/50 blur-xl rounded-full opacity-50 group-hover:opacity-100 transition-opacity duration-300"></div>
+                            <img src="/logo.svg" alt="Sentinel Logo" className="w-8 h-8 sm:w-13 sm:h-13 relative drop-shadow-[0_0_8px_rgba(13,166,242,0.5)]" />
                         </div>
                         <span className="text-lg sm:text-xl font-bold tracking-tight text-white">Sentinel</span>
                     </Link>

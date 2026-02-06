@@ -64,7 +64,7 @@ export default function Home() {
             wrapperClassName: "flex gap-2 mb-4 text-gray-300"
         },
         { text: "🚀 Sentinel Server Setup", className: "text-blue-400 font-bold" },
-        { text: "Mode: prod | Version: 5163d6e", className: "text-gray-500" },
+        { text: "Mode: prod | Version: v1.1.0", className: "text-gray-500" },
         { text: "------------------------------------------------", className: "text-gray-500" },
         { text: "⚙  Generating gRPC Code...", className: "text-yellow-400" },
         { text: "   ✅ Proto files generated successfully.", className: "text-green-400" },
@@ -73,8 +73,8 @@ export default function Home() {
         { text: "   - Building Linux ARM64...", className: "text-gray-400" },
         { text: "   - Building Windows AMD64...", className: "text-gray-400" },
         { text: "📦 Starting Backend Services (prod mode)...", className: "text-purple-400" },
-        { text: " => [core builder 5/6] COPY . .", className: "text-gray-500 text-xs" },
-        { text: " => [core builder 6/6] RUN go build -o core ./cmd/core", className: "text-gray-500 text-xs" },
+        { text: " => [core] Loading TLS certificates...", className: "text-gray-500 text-xs" },
+        { text: " => [core] gRPC Server running in SECURE (TLS) mode 🔒", className: "text-green-400 text-xs" },
         { text: " ✔ Image sentinel-core Built", className: "text-green-400" },
         { text: " ✔ Image sentinel-web  Built", className: "text-green-400" },
         { text: "🎉 System Ready! (prod mode)", className: "text-yellow-400 font-bold mt-2" },
@@ -109,7 +109,7 @@ export default function Home() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                                     </span>
-                                    v2.3 — Free & Open Source
+                                    v1.1 — Free & Open Source
                                 </div>
                                 <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.1] mb-6">
                                     Your Servers. Your Data. <br />

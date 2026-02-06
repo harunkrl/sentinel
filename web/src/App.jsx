@@ -17,7 +17,24 @@ function App() {
       setToken(storedToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
+
+    // Add interceptor for 401 Unauthorized
+    const interceptor = axios.interceptors.response.use(
+      (response) => response,
+      (error) => {
+        if (error.response && error.response.status === 401) {
+          handleLogout();
+        }
+        return Promise.reject(error);
+      }
+    );
+
     setIsLoading(false);
+
+    // Cleanup
+    return () => {
+      axios.interceptors.response.eject(interceptor);
+    };
   }, []);
 
   const handleLoginSuccess = (newToken) => {

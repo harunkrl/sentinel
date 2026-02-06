@@ -8,7 +8,7 @@ COPY . .
 RUN go build -o core ./cmd/core
 
 FROM alpine:latest
-WORKDIR /root/
+WORKDIR /app
 COPY --from=builder /app/core .
 
 EXPOSE 50051 8080

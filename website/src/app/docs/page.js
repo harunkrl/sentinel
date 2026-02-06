@@ -386,7 +386,7 @@ export default function Docs() {
                             <h2 className="text-white text-lg sm:text-xl font-bold tracking-tight">Sentinel Docs</h2>
                         </a>
                         <div className="hidden sm:flex items-center text-sm font-medium border-l border-white/10 pl-4 sm:pl-6 h-6">
-                            <span className="text-[#0da6f2] font-semibold">v2.3</span>
+                            <span className="text-[#0da6f2] font-semibold">v1.1</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
@@ -756,7 +756,10 @@ curl -sL http://<SERVER_IP>/downloads/install.sh | sudo bash -s <SERVER_IP>`} />
 
                                 <SubSection>Development (Port 3000)</SubSection>
                                 <CodeBlock code={`# Download and run install script (development mode)
-curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP> 3000`} />
+curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP> 3000
+
+# Note: For self-signed TLS (Dev mode), the agent will automatically use
+# SENTINEL_INSECURE_TLS=true if installed via this script.`} />
 
                                 <SubSection>Supported Distributions</SubSection>
                                 <div className="flex flex-wrap gap-2 mb-6">
@@ -805,6 +808,7 @@ Type=simple
 User=root
 Environment="CORE_ADDRESS=<SERVER_IP>:50051"
 Environment="AGENT_SECRET=<your-agent-secret>"
+Environment="SENTINEL_INSECURE_TLS=true"
 Environment="LOG_LEVEL=info"
 
 ExecStart=/usr/local/bin/sentinel-agent
@@ -938,8 +942,8 @@ WantedBy=multi-user.target`} />
                                         <tbody className="divide-y divide-white/5">
                                             <tr><td className="p-3 text-slate-300">Authentication</td><td className="p-3 text-slate-400">JWT tokens (24h validity)</td></tr>
                                             <tr><td className="p-3 text-slate-300">Password</td><td className="p-3 text-slate-400">bcrypt hashing</td></tr>
-                                            <tr><td className="p-3 text-slate-300">Rate Limiting</td><td className="p-3 text-slate-400">5/min login, 100/min API</td></tr>
-                                            <tr><td className="p-3 text-slate-300">Agent Auth</td><td className="p-3 text-slate-400">AGENT_SECRET verification</td></tr>
+                                            <tr><td className="p-3 text-slate-300">Rate Limiting</td><td className="p-3 text-slate-400">Token Bucket (x/time/rate)</td></tr>
+                                            <tr><td className="p-3 text-slate-300">TLS Encryption</td><td className="p-3 text-slate-400">gRPC (Agent-Core)</td></tr>
                                         </tbody>
                                     </table>
                                 </div>

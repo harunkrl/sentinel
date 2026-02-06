@@ -43,6 +43,7 @@ services:
       - DATA_DIR=/data
     volumes:
       - sentinel_data:/data
+      - ./certs:/app/certs:ro
     depends_on:
       influxdb:
         condition: service_healthy

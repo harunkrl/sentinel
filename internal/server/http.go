@@ -199,6 +199,12 @@ func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 		c.JSON(http.StatusServiceUnavailable, gin.H{"error": err.Error()})
 		return
 	}
+
+	// AUDIT LOG
+	if s.core.db != nil {
+		go s.core.db.AddAuditLog("update_agent", agentID, "User triggered update")
+	}
+
 	c.JSON(http.StatusOK, gin.H{"status": "updating", "command_id": cmdID})
 }
 

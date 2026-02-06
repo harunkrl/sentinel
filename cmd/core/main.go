@@ -3,6 +3,7 @@ package main
 import (
 	"crypto/rand"
 	"encoding/hex"
+	"fmt"
 	"log"
 	"net"
 	"os"
@@ -11,6 +12,7 @@ import (
 	"sentinel/internal/store"
 
 	"google.golang.org/grpc"
+	"google.golang.org/grpc/credentials"
 	"google.golang.org/grpc/reflection"
 )
 
@@ -47,12 +49,13 @@ func main() {
 		if err := core.CreateUser("admin", randomPassword, "admin"); err != nil {
 			log.Printf("Failed to create admin user: %v", err)
 		} else {
-			log.Println("==============================================")
-			log.Println("  INITIAL ADMIN CREDENTIALS")
-			log.Println("  Username: admin")
-			log.Printf("  Password: %s", randomPassword)
-			log.Println("  Please change this password after first login!")
-			log.Println("==============================================")
+			// Print to stdout only (avoid logging systems if possible)
+			fmt.Println("\n==============================================")
+			fmt.Println("  INITIAL ADMIN CREDENTIALS")
+			fmt.Println("  Username: admin")
+			fmt.Printf("  Password: %s\n", randomPassword)
+			fmt.Println("  ⚠️  IMPORTANT: Change this password immediately!")
+			fmt.Println("==============================================\n")
 		}
 	}
 
@@ -62,7 +65,22 @@ func main() {
 		if err != nil {
 			log.Fatalf("failed to listen: %v", err)
 		}
-		grpcServer := grpc.NewServer()
+
+		// TLS Configuration
+		creds, err := credentials.NewServerTLSFromFile("certs/server-cert.pem", "certs/server-key.pem")
+		if err != nil {
+			log.Printf("Warning: Failed to load TLS keys, falling back to INSECURE mode: %v", err)
+			log.Println("Ensure 'certs/server-cert.pem' and 'certs/server-key.pem' exist.")
+		}
+
+		var grpcServer *grpc.Server
+		if creds != nil {
+			grpcServer = grpc.NewServer(grpc.Creds(creds))
+			log.Println("gRPC Server running in SECURE (TLS) mode 🔒")
+		} else {
+			grpcServer = grpc.NewServer()
+			log.Println("gRPC Server running in INSECURE mode ⚠️")
+		}
 
 		core.RegisterGrpc(grpcServer)
 		reflection.Register(grpcServer)

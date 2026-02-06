@@ -20,7 +20,8 @@ import (
 	"github.com/shirou/gopsutil/v3/mem"
 	"github.com/shirou/gopsutil/v3/process"
 	"google.golang.org/grpc"
-	"google.golang.org/grpc/credentials/insecure"
+	"google.golang.org/grpc/credentials"
+	"crypto/tls"
 )
 
 // Global Docker Manager
@@ -54,7 +55,27 @@ func main() {
 }
 
 func runAgent(addr string, col *collector.Collector) error {
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(insecure.NewCredentials()))
+	// TLS Config
+	// Default: Secure (Verify Cert)
+	// Dev/Self-Signed: Set SENTINEL_INSECURE_TLS=true
+	insecureTLS := os.Getenv("SENTINEL_INSECURE_TLS") == "true"
+	
+	tlsConfig := &tls.Config{
+		InsecureSkipVerify: insecureTLS,
+	}
+	
+	if insecureTLS {
+		log.Println("⚠️ WARNING: Running with InsecureSkipVerify=true (TLS certificate check disabled)")
+	}
+	
+	// Use TLS credentials
+	creds := credentials.NewTLS(tlsConfig)
+	
+	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
+	// Fallback to insecure if TLS fails? No, enforce security or make it configurable.
+	// For backward compatibility during migration, we could try insecure if TLS fails,
+	// but that defeats the purpose of security. Let's stick to TLS.
+	
 	if err != nil {
 		return err
 	}

@@ -1,5 +1,7 @@
 # Binaries
 bin/
+core
+agent
 sentinel-core
 sentinel-agent
 deploy/downloads/sentinel-agent-*
@@ -52,6 +54,10 @@ data/*
 !data/settings.json.example
 *.db
 *.sqlite
+certs/
+*.pem
+*.key
+*.crt
 
 # Terraform
 .terraform/

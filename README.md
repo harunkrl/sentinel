@@ -314,10 +314,12 @@ graph TB
 
 | Feature | Implementation |
 |---------|----------------|
+| **TLS/SSL** | End-to-end encryption for gRPC (Agent-Core) |
 | Authentication | JWT (24-hour validity) |
 | Password Hashing | bcrypt |
-| Rate Limiting | Login: 5/min, API: 100/min |
+| Rate Limiting | **Token Bucket** algorithm (golang.org/x/time/rate) |
 | CORS | Configurable origins |
+| **Audit Logs** | Tracks critical actions (updates, deletions) |
 
 ---
 

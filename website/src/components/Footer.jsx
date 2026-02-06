@@ -63,7 +63,7 @@ export default function Footer() {
                     <div className="flex items-center gap-4 text-sm text-gray-500 font-mono">
                         <span>Built with Go & React</span>
                         <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-                        <span>v2.3</span>
+                        <span>v1.1</span>
                     </div>
                 </div>
             </div>

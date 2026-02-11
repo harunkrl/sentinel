@@ -4,10 +4,10 @@ import {
     SiAlpinelinux,
     SiEndeavouros
 } from "react-icons/si";
-import { FaWindows } from "react-icons/fa"; // Alternatif Windows ikonu
+import { FaWindows } from "react-icons/fa";
 
-// Marka/Distro Tanımlamaları
-// Key: Aranan kelime (küçük harf), Value: İkon ve Renk
+// OS brand / distro definitions
+// Key: search keyword (lowercase), Value: icon & color
 const OS_MAP = {
     'raspbian': { icon: SiRaspberrypi, color: 'text-red-500' },
     'raspberry': { icon: SiRaspberrypi, color: 'text-red-500' },
@@ -30,14 +30,14 @@ const DEFAULT_OS = { icon: SiLinux, color: 'text-gray-400' };
 export const getOSIcon = (agent) => {
     if (!agent) return DEFAULT_OS;
 
-    // Platform, OS ve Hostname içinde arama yapıyoruz
+    // Search across platform, OS, and hostname fields
     const searchString = `
         ${agent.platform || ''} 
         ${agent.os || ''} 
         ${agent.hostname || ''}
     `.toLowerCase();
 
-    // Map içindeki anahtarları tek tek kontrol et
+    // Check each key in the OS map
     for (const [key, value] of Object.entries(OS_MAP)) {
         if (searchString.includes(key)) {
             return value;

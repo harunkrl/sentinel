@@ -48,6 +48,20 @@ import TerminalTyper from "../components/TerminalTyper";
 import AgentCard from "../components/AgentCard";
 import { getOSIcon } from "../utils/osHelpers";
 
+// Static color map — Tailwind JIT requires full class strings at build time
+const colorMap = {
+    blue: { bg: 'bg-blue-500/20', text: 'text-blue-400', border: 'border-blue-500/30' },
+    green: { bg: 'bg-green-500/20', text: 'text-green-400', border: 'border-green-500/30' },
+    red: { bg: 'bg-red-500/20', text: 'text-red-400', border: 'border-red-500/30' },
+    yellow: { bg: 'bg-yellow-500/20', text: 'text-yellow-400', border: 'border-yellow-500/30' },
+    purple: { bg: 'bg-purple-500/20', text: 'text-purple-400', border: 'border-purple-500/30' },
+    emerald: { bg: 'bg-emerald-500/20', text: 'text-emerald-400', border: 'border-emerald-500/30' },
+    indigo: { bg: 'bg-indigo-500/20', text: 'text-indigo-400', border: 'border-indigo-500/30' },
+    pink: { bg: 'bg-pink-500/20', text: 'text-pink-400', border: 'border-pink-500/30' },
+    cyan: { bg: 'bg-cyan-500/20', text: 'text-cyan-400', border: 'border-cyan-500/30' },
+    orange: { bg: 'bg-orange-500/20', text: 'text-orange-400', border: 'border-orange-500/30' },
+};
+
 export default function Home() {
 
     const ubuntuAgent = { os: 'ubuntu', hostname: 'ubuntu-server' };
@@ -72,13 +86,13 @@ export default function Home() {
         { text: "   - Building Linux AMD64...", className: "text-gray-400" },
         { text: "   - Building Linux ARM64...", className: "text-gray-400" },
         { text: "   - Building Windows AMD64...", className: "text-gray-400" },
+        { text: "⚠️  No .env file found. Creating from .env.production.example...", className: "text-yellow-400 text-xs" },
         { text: "📦 Starting Backend Services (prod mode)...", className: "text-purple-400" },
-        { text: " => [core] Loading TLS certificates...", className: "text-gray-500 text-xs" },
-        { text: " => [core] gRPC Server running in SECURE (TLS) mode 🔒", className: "text-green-400 text-xs" },
+        { text: " => [core] No TLS certs found, falling back to INSECURE mode ⚠️", className: "text-yellow-400 text-xs" },
         { text: " ✔ Image sentinel-core Built", className: "text-green-400" },
         { text: " ✔ Image sentinel-web  Built", className: "text-green-400" },
         { text: "🎉 System Ready! (prod mode)", className: "text-yellow-400 font-bold mt-2" },
-        { text: "Dashboard: http://<SERVER_IP>:80", className: "text-blue-400 underline" }
+        { text: "Dashboard: http://192.168.1.100", className: "text-blue-400 underline" }
     ];
 
     const features = [
@@ -86,8 +100,8 @@ export default function Home() {
         { icon: Container, title: "Docker Control", desc: "Start, stop, restart containers from dashboard", color: "green" },
         { icon: Terminal, title: "Process Manager", desc: "View and kill processes remotely", color: "red" },
         { icon: Bell, title: "Smart Alerts", desc: "Push notifications via Ntfy when thresholds exceeded", color: "yellow" },
-        { icon: RefreshCw, title: "Auto Updates", desc: "One-click agent updates across your fleet", color: "purple" },
-        { icon: Lock, title: "100% Private", desc: "Self-hosted. Your data never leaves your servers", color: "emerald" }
+        { icon: ShieldCheck, title: "Flexible Security", desc: "TLS or plaintext gRPC with automatic fallback", color: "indigo" },
+        { icon: Settings, title: "Operations Toolkit", desc: "make doctor, backup, logs, status — CLI tools for day-2 ops", color: "cyan" }
     ];
 
     return (
@@ -101,29 +115,31 @@ export default function Home() {
             <main className="flex-grow z-10 w-full pt-16 sm:pt-18">
                 {/* Hero Section */}
                 <div className="relative pt-12 pb-12 sm:pt-16 sm:pb-24 overflow-hidden">
+                    {/* Hero glow */}
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-primary/10 rounded-full blur-[120px] animate-float pointer-events-none"></div>
                     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
                         <div className="lg:grid lg:grid-cols-12 lg:gap-16 items-center">
                             <div className="lg:col-span-6 text-left mb-12 lg:mb-0">
-                                <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-6">
+                                <div className="animate-fade-in-up inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 border border-primary/20 text-primary text-xs font-bold mb-6">
                                     <span className="relative flex h-2 w-2">
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                                     </span>
                                     v1.1 — Free & Open Source
                                 </div>
-                                <h1 className="text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.1] mb-6">
+                                <h1 className="animate-fade-in-up text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.1] mb-6" style={{ animationDelay: '0.1s' }}>
                                     Your Servers. Your Data. <br />
                                     <span className="text-transparent bg-clip-text bg-gradient-to-r from-primary to-blue-300">Total Control.</span>
                                 </h1>
-                                <p className="text-base sm:text-lg text-gray-400 mb-8 max-w-xl font-body leading-relaxed">
+                                <p className="animate-fade-in-up text-base sm:text-lg text-gray-400 mb-8 max-w-xl font-body leading-relaxed" style={{ animationDelay: '0.2s' }}>
                                     Lightweight Go agent for real-time infrastructure monitoring.
                                     gRPC streaming, Docker management, and secure remote control — 100% self-hosted.
                                 </p>
-                                <div className="flex flex-wrap gap-3 sm:gap-4">
+                                <div className="animate-fade-in-up flex flex-wrap gap-3 sm:gap-4" style={{ animationDelay: '0.3s' }}>
                                     <Link href="/docs" className="flex items-center justify-center gap-2 bg-primary hover:bg-primary/90 text-white text-sm sm:text-base font-bold h-11 sm:h-12 px-5 sm:px-6 rounded-lg transition-all shadow-[0_0_20px_-5px_#0da6f2]">
                                         Get Started <ArrowRight className="w-4 h-4" />
                                     </Link>
-                                    <a href="https://github.com/harunkrl/sentinel" target="_blank" className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm sm:text-base font-bold h-11 sm:h-12 px-5 sm:px-6 rounded-lg backdrop-blur-sm transition-all">
+                                    <a href="https://github.com/harunkrl/sentinel" target="_blank" rel="noopener noreferrer" className="flex items-center justify-center gap-2 bg-white/5 hover:bg-white/10 border border-white/10 text-white text-sm sm:text-base font-bold h-11 sm:h-12 px-5 sm:px-6 rounded-lg backdrop-blur-sm transition-all">
                                         <Github className="w-5 h-5" /> Star on GitHub
                                     </a>
                                 </div>
@@ -178,7 +194,7 @@ export default function Home() {
                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
                             {features.map(({ icon: Icon, title, desc, color }) => (
                                 <div key={title} className="glass-panel p-6 sm:p-8 rounded-xl border border-white/10 hover:bg-glass-hover transition-colors group">
-                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg bg-${color}-500/20 text-${color}-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                    <div className={`w-10 h-10 sm:w-12 sm:h-12 rounded-lg ${colorMap[color]?.bg} ${colorMap[color]?.text} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                                         <Icon className="w-5 h-5 sm:w-6 sm:h-6" />
                                     </div>
                                     <h3 className="text-lg sm:text-xl font-bold text-white mb-2">{title}</h3>
@@ -212,12 +228,12 @@ export default function Home() {
                                 ].map(({ icon: Icon, title, desc, tech, techColor }, i) => (
                                     <div key={title} className="group">
                                         <div className="p-6 rounded-xl border border-white/5 bg-background-dark/40 backdrop-blur-md hover:border-primary/50 transition-all duration-300 h-full flex flex-col items-center text-center group-hover:bg-background-dark/60">
-                                            <div className={`w-12 h-12 rounded-lg bg-${techColor === 'cyan' ? 'blue' : techColor}-500/20 text-${techColor === 'cyan' ? 'blue' : techColor}-400 flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
+                                            <div className={`w-12 h-12 rounded-lg ${colorMap[techColor]?.bg} ${colorMap[techColor]?.text} flex items-center justify-center mb-4 group-hover:scale-110 transition-transform`}>
                                                 <Icon className="w-6 h-6" />
                                             </div>
                                             <h3 className="text-lg font-bold text-white mb-2">{title}</h3>
                                             <p className="text-sm text-gray-500 mb-4">{desc}</p>
-                                            <div className={`mt-auto px-3 py-1 bg-white/5 rounded-full text-xs font-mono text-${techColor}-400 border border-${techColor}-500/30`}>{tech}</div>
+                                            <div className={`mt-auto px-3 py-1 bg-white/5 rounded-full text-xs font-mono ${colorMap[techColor]?.text} ${colorMap[techColor]?.border}`}>{tech}</div>
                                         </div>
                                     </div>
                                 ))}
@@ -262,7 +278,7 @@ export default function Home() {
                                     { icon: HardDrive, label: "Avg RAM", value: "42.1%", color: "purple" }
                                 ].map(({ icon: Icon, label, value, color }) => (
                                     <div key={label} className="glass-card p-3 sm:p-5 rounded-xl sm:rounded-2xl flex items-center gap-3 sm:gap-4 border border-white/5 bg-white/5">
-                                        <div className={`p-2 sm:p-3 bg-${color}-500/20 rounded-lg sm:rounded-xl text-${color}-400`}>
+                                        <div className={`p-2 sm:p-3 ${colorMap[color]?.bg} rounded-lg sm:rounded-xl ${colorMap[color]?.text}`}>
                                             <Icon className="w-4 h-4 sm:w-6 sm:h-6" />
                                         </div>
                                         <div>
@@ -370,7 +386,7 @@ export default function Home() {
                                                 { icon: Clock, label: "Uptime", value: "12 days", color: "green" }
                                             ].map(({ icon: Icon, label, value, color }) => (
                                                 <div key={label} className="glass-card flex items-start gap-3 p-3 sm:p-4 rounded-xl border border-white/5">
-                                                    <div className={`p-2 bg-white/5 rounded-lg text-${color}-400`}><Icon className="w-4 h-4 sm:w-5 sm:h-5" /></div>
+                                                    <div className={`p-2 bg-white/5 rounded-lg ${colorMap[color]?.text}`}><Icon className="w-4 h-4 sm:w-5 sm:h-5" /></div>
                                                     <div>
                                                         <p className="text-[10px] sm:text-xs text-gray-500 uppercase font-bold">{label}</p>
                                                         <p className="text-xs sm:text-sm font-medium text-white">{value}</p>
@@ -489,7 +505,7 @@ export default function Home() {
                             <Link href="/docs" className="bg-primary hover:bg-primary/90 text-white text-base sm:text-lg font-bold py-3 px-8 rounded-lg shadow-lg shadow-primary/20 transition-all flex items-center justify-center gap-2">
                                 Get Started <ArrowRight className="w-5 h-5" />
                             </Link>
-                            <a href="https://github.com/harunkrl/sentinel" target="_blank" className="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-base sm:text-lg font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2">
+                            <a href="https://github.com/harunkrl/sentinel" target="_blank" rel="noopener noreferrer" className="bg-white/5 hover:bg-white/10 border border-white/10 text-white text-base sm:text-lg font-bold py-3 px-8 rounded-lg transition-all flex items-center justify-center gap-2">
                                 <Star className="w-5 h-5" /> Star on GitHub
                             </a>
                         </div>

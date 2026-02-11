@@ -21,7 +21,7 @@ export default function Header() {
                             <BookOpen className="w-4 h-4" />
                             Docs
                         </Link>
-                        <a href="https://github.com/harunkrl/sentinel" target="_blank" className="text-sm text-gray-300 hover:text-white px-4 py-2 rounded-lg border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all flex items-center gap-2">
+                        <a href="https://github.com/harunkrl/sentinel" target="_blank" rel="noopener noreferrer" className="text-sm text-gray-300 hover:text-white px-4 py-2 rounded-lg border border-white/10 hover:border-white/20 hover:bg-white/5 transition-all flex items-center gap-2">
                             <Github className="w-4 h-4" />
                             GitHub
                         </a>

@@ -19,8 +19,22 @@ const notoSansMono = Noto_Sans_Mono({
 });
 
 export const metadata = {
-  title: "Sentinel - Self-Hosted System Monitoring",
+  title: "Sentinel — Self-Hosted System Monitoring",
   description: "Monitor your distributed infrastructure with a lightweight Go agent. Real-time metrics via gRPC, Docker management, and secure remote control.",
+  keywords: ["system monitoring", "self-hosted", "infrastructure", "gRPC", "Docker", "Go", "real-time metrics"],
+  openGraph: {
+    title: "Sentinel — Self-Hosted System Monitoring",
+    description: "Monitor your distributed infrastructure with a lightweight Go agent. Real-time metrics via gRPC, Docker management, and secure remote control.",
+    url: "https://github.com/harunkrl/sentinel",
+    siteName: "Sentinel",
+    type: "website",
+    locale: "en_US",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Sentinel — Self-Hosted System Monitoring",
+    description: "Monitor your distributed infrastructure with a lightweight Go agent. Real-time metrics via gRPC, Docker management, and secure remote control.",
+  },
 };
 
 export default function RootLayout({ children }) {

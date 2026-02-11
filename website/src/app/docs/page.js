@@ -6,7 +6,8 @@ import {
     Shield, Code, Info, Settings, Variable, Wrench, RefreshCw,
     Bolt, Cpu, Copy, AlertTriangle, Check, Terminal, Server, Lock,
     Container, Monitor, Network, Database, Bell, Zap, ExternalLink,
-    Play, Square, Layers, FileCode, Menu, X
+    Play, Square, Layers, FileCode, Menu, X, Stethoscope,
+    HardDrive, RotateCw, KeyRound, Activity, Trash2, Archive
 } from 'lucide-react';
 
 // Section IDs for scroll tracking
@@ -15,6 +16,7 @@ const SECTION_IDS = [
     'docker-deployment', 'env-vars', 'production',
     'linux-install', 'windows-install', 'agent-config',
     'dashboard-features', 'agent-management', 'remote-control',
+    'cli-tools',
     'api-reference', 'security', 'alerts',
     'troubleshooting', 'updates'
 ];
@@ -278,6 +280,7 @@ const SidebarContent = ({ activeSection, onLinkClick }) => (
 
         <h5 className="text-xs font-bold text-slate-500 uppercase tracking-widest mb-4">Reference</h5>
         <ul className="space-y-1 mb-8">
+            <SidebarLink href="#cli-tools" icon={Terminal} active={activeSection === 'cli-tools'} onClick={onLinkClick}>CLI Tools</SidebarLink>
             <SidebarLink href="#api-reference" icon={FileCode} active={activeSection === 'api-reference'} onClick={onLinkClick}>API Reference</SidebarLink>
             <SidebarLink href="#security" icon={Lock} active={activeSection === 'security'} onClick={onLinkClick}>Security</SidebarLink>
             <SidebarLink href="#alerts" icon={Bell} active={activeSection === 'alerts'} onClick={onLinkClick}>Alerts</SidebarLink>
@@ -386,11 +389,11 @@ export default function Docs() {
                             <h2 className="text-white text-lg sm:text-xl font-bold tracking-tight">Sentinel Docs</h2>
                         </a>
                         <div className="hidden sm:flex items-center text-sm font-medium border-l border-white/10 pl-4 sm:pl-6 h-6">
-                            <span className="text-[#0da6f2] font-semibold">v1.1</span>
+                            <span className="text-[#0da6f2] font-semibold">v1.2</span>
                         </div>
                     </div>
                     <div className="flex items-center gap-2 sm:gap-4">
-                        <a href="https://github.com/harunkrl/sentinel" target="_blank" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm">
+                        <a href="https://github.com/harunkrl/sentinel" target="_blank" rel="noopener noreferrer" className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 text-sm">
                             <Code className="w-5 h-5" />
                             <span className="hidden sm:inline">GitHub</span>
                         </a>
@@ -492,7 +495,8 @@ cp .env.example .env
                                             <h4 className="text-white font-bold mb-2">Start development server</h4>
                                             <CodeBlock code={`# Start all services in development mode
 ./compile_and_run.sh --dev
-# Dashboard available at http://localhost:3000`} />
+# .env is auto-created from .env.example if missing
+# Dashboard available at http://<SERVER_IP>:3000`} />
                                         </div>
                                     </div>
 
@@ -678,21 +682,24 @@ docker logs sentinel_core | grep -A3 "INITIAL ADMIN"`} />
                                 </div>
 
                                 <SubSection>Development Mode</SubSection>
-                                <CodeBlock code={`# Start development server
-./scripts/dev.sh
-# Alternative method
+                                <CodeBlock code={`# Start development server (recommended)
+make dev
+# Or directly:
 ./compile_and_run.sh --dev
-# Dashboard: http://localhost:3000
-# API: http://localhost:3000/api
-# gRPC: localhost:50051`} />
+# Dashboard: http://<SERVER_IP>:3000
+# API: http://<SERVER_IP>:8080
+# InfluxDB: http://<SERVER_IP>:8086`} />
 
                                 <SubSection>Production Mode</SubSection>
                                 <CodeBlock code={`# Start production server
-./scripts/prod.sh
-# Alternative method
+make prod
+# Or directly:
 ./compile_and_run.sh --prod
-# Dashboard: http://localhost (port 80)
-# gRPC: localhost:50051`} />
+# Dashboard: http://<SERVER_IP> (port 80)
+# gRPC: <SERVER_IP>:50051`} />
+
+                                <SubSection>Stop All Services</SubSection>
+                                <CodeBlock code={`make stop`} />
                             </section>
 
                             {/* Environment Variables */}
@@ -710,17 +717,22 @@ docker logs sentinel_core | grep -A3 "INITIAL ADMIN"`} />
                                             </tr>
                                         </thead>
                                         <tbody className="divide-y divide-white/5">
-                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">INFLUX_URL</td><td className="p-3 text-slate-400 hidden sm:table-cell">http://influxdb:8086</td><td className="p-3 text-slate-400">InfluxDB connection URL</td></tr>
-                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">INFLUX_TOKEN</td><td className="p-3 text-slate-400 hidden sm:table-cell">-</td><td className="p-3 text-slate-400">InfluxDB auth token</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">INFLUXDB_URL</td><td className="p-3 text-slate-400 hidden sm:table-cell">http://influxdb:8086</td><td className="p-3 text-slate-400">InfluxDB connection URL</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">INFLUXDB_TOKEN</td><td className="p-3 text-slate-400 hidden sm:table-cell">-</td><td className="p-3 text-slate-400">InfluxDB auth token (must match DOCKER_INFLUXDB_INIT_ADMIN_TOKEN)</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">DOCKER_INFLUXDB_INIT_ADMIN_TOKEN</td><td className="p-3 text-slate-400 hidden sm:table-cell">-</td><td className="p-3 text-slate-400">InfluxDB initialization admin token</td></tr>
                                             <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">JWT_SECRET</td><td className="p-3 text-slate-400 hidden sm:table-cell">auto</td><td className="p-3 text-slate-400">JWT signing key</td></tr>
-                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">AGENT_SECRET</td><td className="p-3 text-slate-400 hidden sm:table-cell">auto</td><td className="p-3 text-slate-400">Agent auth secret</td></tr>
                                             <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">GRPC_PORT</td><td className="p-3 text-slate-400 hidden sm:table-cell">50051</td><td className="p-3 text-slate-400">gRPC server port</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">SENTINEL_INSECURE_TLS</td><td className="p-3 text-slate-400 hidden sm:table-cell">false</td><td className="p-3 text-slate-400">Agent: use plaintext gRPC (no TLS)</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">METRIC_INTERVAL_SECONDS</td><td className="p-3 text-slate-400 hidden sm:table-cell">2</td><td className="p-3 text-slate-400">Agent metric collection interval</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">ALERT_DEBOUNCE_MINUTES</td><td className="p-3 text-slate-400 hidden sm:table-cell">5</td><td className="p-3 text-slate-400">Alert notification cooldown</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">CORS_ALLOWED_ORIGINS</td><td className="p-3 text-slate-400 hidden sm:table-cell">*</td><td className="p-3 text-slate-400">CORS allowed origins list</td></tr>
+                                            <tr><td className="p-3 font-mono text-[#0da6f2] text-xs sm:text-sm">NTFY_TOPIC</td><td className="p-3 text-slate-400 hidden sm:table-cell">-</td><td className="p-3 text-slate-400">Ntfy.sh push notification topic</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
 
                                 <InfoBox type="warning" title="Security">
-                                    In production, always set custom values for <code className="text-white bg-white/10 px-1 rounded">JWT_SECRET</code> and <code className="text-white bg-white/10 px-1 rounded">AGENT_SECRET</code>.
+                                    In production, always set custom values for <code className="text-white bg-white/10 px-1 rounded">JWT_SECRET</code>. Ensure <code className="text-white bg-white/10 px-1 rounded">INFLUXDB_TOKEN</code> exactly matches <code className="text-white bg-white/10 px-1 rounded">DOCKER_INFLUXDB_INIT_ADMIN_TOKEN</code>.
                                 </InfoBox>
                             </section>
 
@@ -731,12 +743,17 @@ docker logs sentinel_core | grep -A3 "INITIAL ADMIN"`} />
                                 <CodeBlock code={`# Create production environment
 cp .env.production.example .env
 # Edit .env with secure values
+# IMPORTANT: INFLUXDB_TOKEN must match DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
 nano .env
 # Start production stack
 ./scripts/prod.sh`} filename=".env production" />
 
-                                <InfoBox type="info" title="Port Configuration">
-                                    Production mode serves the dashboard on port <strong>80</strong>. Make sure this port is available and open in your firewall.
+                                <InfoBox type="warning" title="InfluxDB Token">
+                                    <code className="text-white bg-white/10 px-1 rounded">INFLUXDB_TOKEN</code> and <code className="text-white bg-white/10 px-1 rounded">DOCKER_INFLUXDB_INIT_ADMIN_TOKEN</code> must be <strong>identical</strong>. Mismatched tokens cause 401 Unauthorized errors.
+                                </InfoBox>
+
+                                <InfoBox type="info" title="Auto Environment Setup">
+                                    If no <code className="text-white bg-white/10 px-1 rounded">.env</code> file exists, the startup script automatically creates one from the example template. The server&apos;s LAN IP is auto-detected for agent install commands.
                                 </InfoBox>
                             </section>
 
@@ -899,6 +916,97 @@ WantedBy=multi-user.target`} />
                                 </div>
                             </section>
 
+                            {/* CLI Tools */}
+                            <section id="cli-tools" className="mb-12 sm:mb-16 scroll-mt-24">
+                                <SectionTitle>CLI Tools &amp; Scripts</SectionTitle>
+                                <p className="text-slate-300 mb-4">Sentinel ships with operational scripts for common tasks. All are accessible via <code className="text-white bg-white/10 px-1 rounded">make</code> shortcuts.</p>
+
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-6">
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-green-500/20 text-green-400 flex items-center justify-center shrink-0"><Activity className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make status</h4>
+                                            <p className="text-xs text-slate-400">Container health, uptime, CPU/RAM usage at a glance.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-blue-500/20 text-blue-400 flex items-center justify-center shrink-0"><Stethoscope className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make doctor</h4>
+                                            <p className="text-xs text-slate-400">Diagnose .env tokens, port conflicts, Docker, TLS certs, disk space.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-purple-500/20 text-purple-400 flex items-center justify-center shrink-0"><Layers className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make logs</h4>
+                                            <p className="text-xs text-slate-400">Filtered log viewer. Use <code className="text-white bg-white/10 px-1 rounded">--errors</code>, <code className="text-white bg-white/10 px-1 rounded">--follow</code>, or filter by service.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-orange-500/20 text-orange-400 flex items-center justify-center shrink-0"><Archive className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make backup</h4>
+                                            <p className="text-xs text-slate-400">Backup .env, SQLite DB, InfluxDB data → timestamped <code className="text-white bg-white/10 px-1 rounded">.tar.gz</code>.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-cyan-500/20 text-cyan-400 flex items-center justify-center shrink-0"><KeyRound className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make generate-certs</h4>
+                                            <p className="text-xs text-slate-400">Generate self-signed TLS certificates with proper SAN for gRPC encryption.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-red-500/20 text-red-400 flex items-center justify-center shrink-0"><Trash2 className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make reset</h4>
+                                            <p className="text-xs text-slate-400">Clean wipe of all data volumes and containers. Interactive confirmation required.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-yellow-500/20 text-yellow-400 flex items-center justify-center shrink-0"><RotateCw className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make update</h4>
+                                            <p className="text-xs text-slate-400">Pull latest code, auto-backup, detect mode, rebuild and restart.</p>
+                                        </div>
+                                    </div>
+                                    <div className="p-4 rounded-xl border border-white/10 bg-[#0f1623] flex gap-3">
+                                        <div className="w-10 h-10 rounded-lg bg-emerald-500/20 text-emerald-400 flex items-center justify-center shrink-0"><HardDrive className="w-5 h-5" /></div>
+                                        <div className="min-w-0">
+                                            <h4 className="text-white font-bold text-sm mb-0.5">make build-all</h4>
+                                            <p className="text-xs text-slate-400">Build core + agents for Linux AMD64, Linux ARM64, and Windows AMD64.</p>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <SubSection>Usage Examples</SubSection>
+                                <CodeBlock code={`# Quick health check
+make status
+
+# Diagnose all common issues
+make doctor
+
+# View only errors from the core service
+./scripts/logs.sh core --errors
+
+# Follow all logs in real-time
+./scripts/logs.sh -f
+
+# Backup data before maintenance
+make backup
+
+# Generate TLS certificates
+make generate-certs
+
+# Full update workflow
+make update`} filename="CLI Examples" />
+
+                                <InfoBox type="tip" title="Pro Tip">
+                                    Run <code className="text-white bg-white/10 px-1 rounded">make help</code> to see all available commands organized by category.
+                                </InfoBox>
+                            </section>
+
                             {/* API Reference */}
                             <section id="api-reference" className="mb-12 sm:mb-16 scroll-mt-24">
                                 <SectionTitle>API Reference</SectionTitle>
@@ -907,6 +1015,7 @@ WantedBy=multi-user.target`} />
                                 <SubSection>Authentication</SubSection>
                                 <ApiEndpoint method="POST" path="/api/auth/login" description="Get JWT token" />
                                 <ApiEndpoint method="POST" path="/api/auth/change-password" description="Change password" />
+                                <ApiEndpoint method="GET" path="/api/auth/check" description="Verify token validity" />
 
                                 <SubSection>Agents</SubSection>
                                 <ApiEndpoint method="GET" path="/api/agents" description="List all agents" />
@@ -925,6 +1034,7 @@ WantedBy=multi-user.target`} />
                                 <ApiEndpoint method="GET" path="/api/settings" description="Get settings" />
                                 <ApiEndpoint method="POST" path="/api/settings" description="Save settings" />
                                 <ApiEndpoint method="GET" path="/api/events" description="SSE stream" />
+                                <ApiEndpoint method="GET" path="/api/health" description="Liveness check" />
                             </section>
 
                             {/* Security */}
@@ -943,7 +1053,8 @@ WantedBy=multi-user.target`} />
                                             <tr><td className="p-3 text-slate-300">Authentication</td><td className="p-3 text-slate-400">JWT tokens (24h validity)</td></tr>
                                             <tr><td className="p-3 text-slate-300">Password</td><td className="p-3 text-slate-400">bcrypt hashing</td></tr>
                                             <tr><td className="p-3 text-slate-300">Rate Limiting</td><td className="p-3 text-slate-400">Token Bucket (x/time/rate)</td></tr>
-                                            <tr><td className="p-3 text-slate-300">TLS Encryption</td><td className="p-3 text-slate-400">gRPC (Agent-Core)</td></tr>
+                                            <tr><td className="p-3 text-slate-300">gRPC Transport</td><td className="p-3 text-slate-400">TLS default, auto-fallback to plaintext (SENTINEL_INSECURE_TLS)</td></tr>
+                                            <tr><td className="p-3 text-slate-300">Audit Logs</td><td className="p-3 text-slate-400">Tracks critical actions (updates, deletions)</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -988,40 +1099,61 @@ WantedBy=multi-user.target`} />
                                 <SectionTitle>Troubleshooting</SectionTitle>
                                 <p className="text-slate-300 mb-6">Common issues and solutions.</p>
 
+                                <InfoBox type="tip" title="Quick Diagnostics">
+                                    Run <code className="text-white bg-white/10 px-1 rounded">make doctor</code> to automatically check for the most common issues: .env token mismatches, port conflicts, Docker health, TLS certificates, and disk space.
+                                </InfoBox>
+
                                 <SubSection>Check Agent Status</SubSection>
                                 <CodeBlock code={`# Check agent service status
 sudo systemctl status sentinel-agent`} />
 
                                 <SubSection>View Live Logs</SubSection>
                                 <CodeBlock code={`# Follow agent logs in real-time
-sudo journalctl -u sentinel-agent -f`} />
+sudo journalctl -u sentinel-agent -f
+# Or use the built-in log viewer for server-side logs:
+./scripts/logs.sh core --errors`} />
 
                                 <SubSection>Agent Not Connecting</SubSection>
                                 <div className="space-y-2 mb-6 text-sm sm:text-base">
                                     <p className="text-slate-300">1. Verify Core Server is running and gRPC port (50051) is accessible</p>
                                     <p className="text-slate-300">2. Check CORE_ADDRESS in agent service file</p>
-                                    <p className="text-slate-300">3. Ensure AGENT_SECRET matches between server and agent</p>
+                                    <p className="text-slate-300">3. Ensure TLS modes match: if Core has no certs, agent needs <code className="text-white bg-white/10 px-1 rounded">SENTINEL_INSECURE_TLS=true</code></p>
                                     <p className="text-slate-300">4. Check firewall rules for port 50051</p>
+                                    <p className="text-slate-300">5. Run <code className="text-white bg-white/10 px-1 rounded">make doctor</code> to auto-diagnose</p>
+                                </div>
+
+                                <SubSection>InfluxDB 401 Unauthorized</SubSection>
+                                <div className="space-y-2 mb-6 text-sm sm:text-base">
+                                    <p className="text-slate-300">1. Run <code className="text-white bg-white/10 px-1 rounded">make doctor</code> — it checks if tokens match</p>
+                                    <p className="text-slate-300">2. Ensure <code className="text-white bg-white/10 px-1 rounded">INFLUXDB_TOKEN</code> and <code className="text-white bg-white/10 px-1 rounded">DOCKER_INFLUXDB_INIT_ADMIN_TOKEN</code> are identical in <code className="text-white bg-white/10 px-1 rounded">.env</code></p>
+                                    <p className="text-slate-300">3. If tokens were changed after first run, reset: <code className="text-white bg-white/10 px-1 rounded">make reset</code></p>
                                 </div>
 
                                 <SubSection>Container Issues</SubSection>
-                                <CodeBlock code={`# Check container logs
-docker logs sentinel_core
-# Restart all services
-docker-compose down && docker-compose up -d`} />
+                                <CodeBlock code={`# Quick health check
+make status
+# Check container logs
+make logs
+# View only errors
+./scripts/logs.sh --errors
+# Full restart
+make stop && make dev`} />
                             </section>
 
                             {/* Updates */}
                             <section id="updates" className="mb-12 sm:mb-16 scroll-mt-24">
                                 <SectionTitle>Updates</SectionTitle>
 
-                                <SubSection>Update Server</SubSection>
-                                <CodeBlock code={`# Navigate to project directory
-cd sentinel
-# Pull latest changes
+                                <SubSection>Update Server (Automated)</SubSection>
+                                <CodeBlock code={`# One-command update: backup → git pull → rebuild → restart
+make update`} />
+                                <p className="text-slate-300 mb-4 text-sm">This script automatically detects your current mode (dev/prod), creates a backup, pulls the latest code, and rebuilds.</p>
+
+                                <SubSection>Update Server (Manual)</SubSection>
+                                <CodeBlock code={`# Pull latest changes
 git pull
-# Restart with latest code
-./scripts/prod.sh`} />
+# Rebuild and restart
+make prod`} />
 
                                 <SubSection>Update Agents (Remote)</SubSection>
                                 <p className="text-slate-300 mb-4">
@@ -1042,7 +1174,7 @@ git pull
 
                         <footer className="mt-12 sm:mt-20 pt-6 sm:pt-8 border-t border-white/10 text-center flex flex-col justify-center items-center text-sm text-slate-500 pb-8 sm:pb-10 gap-4">
                             <p>© 2026 Sentinel. Open Source under MIT License.</p>
-                            <a href="https://github.com/harunkrl/sentinel" className="hover:text-white transition flex items-center gap-1">
+                            <a href="https://github.com/harunkrl/sentinel" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
                                 <ExternalLink className="w-4 h-4" /> GitHub
                             </a>
                         </footer>

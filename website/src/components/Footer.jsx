@@ -25,10 +25,10 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-bold mb-6">Product</h3>
                         <ul className="space-y-4">
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Features</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Integrations</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Changelog</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Roadmap</a></li>
+                            <li><Link href="/docs#introduction" className="text-gray-400 hover:text-white transition-colors text-sm">Features</Link></li>
+                            <li><Link href="/docs#architecture" className="text-gray-400 hover:text-white transition-colors text-sm">Architecture</Link></li>
+                            <li><Link href="/docs#api-reference" className="text-gray-400 hover:text-white transition-colors text-sm">API Reference</Link></li>
+                            <li><a href="https://github.com/harunkrl/sentinel/releases" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">Changelog</a></li>
                         </ul>
                     </div>
 
@@ -37,9 +37,9 @@ export default function Footer() {
                         <h3 className="text-white font-bold mb-6">Resources</h3>
                         <ul className="space-y-4">
                             <li><Link href="/docs" className="text-gray-400 hover:text-white transition-colors text-sm">Documentation</Link></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">API Reference</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Community Forum</a></li>
-                            <li><a href="https://github.com/harunkrl/sentinel" className="text-gray-400 hover:text-white transition-colors text-sm">GitHub</a></li>
+                            <li><Link href="/docs#quick-start" className="text-gray-400 hover:text-white transition-colors text-sm">Quick Start</Link></li>
+                            <li><Link href="/docs#troubleshooting" className="text-gray-400 hover:text-white transition-colors text-sm">Troubleshooting</Link></li>
+                            <li><a href="https://github.com/harunkrl/sentinel" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">GitHub</a></li>
                         </ul>
                     </div>
 
@@ -47,9 +47,7 @@ export default function Footer() {
                     <div>
                         <h3 className="text-white font-bold mb-6">Legal</h3>
                         <ul className="space-y-4">
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Privacy Policy</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">Terms of Service</a></li>
-                            <li><a href="#" className="text-gray-400 hover:text-white transition-colors text-sm">MIT License</a></li>
+                            <li><a href="https://github.com/harunkrl/sentinel/blob/main/LICENSE" target="_blank" rel="noopener noreferrer" className="text-gray-400 hover:text-white transition-colors text-sm">MIT License</a></li>
                         </ul>
                     </div>
                 </div>
@@ -58,7 +56,7 @@ export default function Footer() {
             <div className="border-t border-white/5 bg-black/20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-gray-500 text-sm">
-                        © 2026 Sentinel. Open Source under MIT License.
+                        © 2025 Sentinel. Open Source under MIT License.
                     </p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 font-mono">
                         <span>Built with Go & React</span>

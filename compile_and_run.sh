@@ -85,6 +85,22 @@ fi
 # --- 2. START DOCKER ---
 echo -e "${GREEN}📦 Starting Backend Services ($MODE mode)...${NC}"
 
+# Ensure .env file exists (Docker Compose reads it automatically)
+if [ ! -f .env ]; then
+    if [ "$MODE" = "prod" ] && [ -f .env.production.example ]; then
+        echo -e "${YELLOW}⚠️  No .env file found. Creating from .env.production.example...${NC}"
+        cp .env.production.example .env
+        echo -e "${RED}   ⚠️  IMPORTANT: Edit .env and change ALL placeholder values before production use!${NC}"
+    elif [ -f .env.example ]; then
+        echo -e "${YELLOW}⚠️  No .env file found. Creating from .env.example...${NC}"
+        cp .env.example .env
+    else
+        echo -e "${RED}❌ No .env or .env.example found! Create a .env file with required variables.${NC}"
+        echo "   See README.md for required environment variables."
+        exit 1
+    fi
+fi
+
 if [ "$MODE" = "prod" ]; then
     docker compose -f docker-compose.yml -f docker-compose.prod.yml up -d --build
 else
@@ -93,16 +109,23 @@ fi
 
 echo ""
 echo -e "${BLUE}🎉 System Ready! (${MODE} mode)${NC}"
+
+# Auto-detect server IP for install instructions
+SERVER_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+if [ -z "$SERVER_IP" ]; then
+    SERVER_IP="<SERVER_IP>"
+fi
+
 if [ "$MODE" = "prod" ]; then
-    echo "Dashboard: http://localhost:80"
+    echo "Dashboard: http://$SERVER_IP"
     echo "------------------------------------------------"
     echo "To install agent on other devices:"
-    echo -e "${GREEN}curl -sL http://<SERVER_IP>/downloads/install.sh | sudo bash -s <SERVER_IP>${NC}"
+    echo -e "${GREEN}curl -sL http://$SERVER_IP/downloads/install.sh | sudo bash -s $SERVER_IP${NC}"
 else
-    echo "Dashboard: http://localhost:3000"
-    echo "API Debug: http://localhost:8080"
-    echo "InfluxDB:  http://localhost:8086"
+    echo "Dashboard: http://$SERVER_IP:3000"
+    echo "API Debug: http://$SERVER_IP:8080"
+    echo "InfluxDB:  http://$SERVER_IP:8086"
     echo "------------------------------------------------"
     echo "To install agent on other devices:"
-    echo -e "${GREEN}curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP>${NC}"
+    echo -e "${GREEN}curl -sL http://$SERVER_IP:3000/downloads/install.sh | sudo bash -s $SERVER_IP${NC}"
 fi

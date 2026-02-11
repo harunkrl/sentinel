@@ -1,6 +1,7 @@
 
 BINARY_DIR=bin
 
+# === Build ===
 build: build-core build-agent
 
 build-core:
@@ -18,19 +19,87 @@ build-agent-arm:
 	mkdir -p $(BINARY_DIR)
 	GOOS=linux GOARCH=arm64 go build -o $(BINARY_DIR)/agent-arm64 ./cmd/agent
 
-clean:
-	rm -rf $(BINARY_DIR)
+build-agent-windows:
+	@echo "Building Agent (Windows/AMD64)..."
+	mkdir -p $(BINARY_DIR)
+	GOOS=windows GOARCH=amd64 go build -o $(BINARY_DIR)/agent-windows.exe ./cmd/agent
 
+build-all: build-core build-agent build-agent-arm build-agent-windows
+
+# === Docker ===
+dev:
+	./compile_and_run.sh --dev
+
+prod:
+	./compile_and_run.sh --prod
+
+stop:
+	docker compose down
+
+# === Operations ===
+status:
+	@bash ./scripts/status.sh
+
+logs:
+	@bash ./scripts/logs.sh
+
+doctor:
+	@bash ./scripts/doctor.sh
+
+backup:
+	@bash ./scripts/backup.sh
+
+reset:
+	@bash ./scripts/reset.sh
+
+update:
+	@bash ./scripts/update.sh
+
+generate-certs:
+	@bash ./scripts/generate-certs.sh
+
+# === Development ===
 test:
 	@echo "Running Tests..."
 	go test -v ./...
 	go vet ./...
 
+clean:
+	rm -rf $(BINARY_DIR)
+
+# === Help ===
 help:
-	@echo "Available commands:"
-	@echo "  make build         - Build core and agent binaries"
-	@echo "  make build-core    - Build only the core server"
-	@echo "  make build-agent   - Build agent for Linux/AMD64"
-	@echo "  make build-agent-arm - Build agent for Linux/ARM64"
-	@echo "  make test          - Run tests and static analysis"
-	@echo "  make clean         - Remove build artifacts"
+	@echo ""
+	@echo "  Sentinel — Available Commands"
+	@echo "  ════════════════════════════════════════"
+	@echo ""
+	@echo "  Build:"
+	@echo "    make build            Build core + Linux agent"
+	@echo "    make build-all        Build all (core + Linux/ARM/Windows agent)"
+	@echo "    make build-core       Build only the core server"
+	@echo "    make build-agent      Build agent for Linux/AMD64"
+	@echo "    make build-agent-arm  Build agent for Linux/ARM64"
+	@echo "    make build-agent-windows  Build agent for Windows"
+	@echo ""
+	@echo "  Docker:"
+	@echo "    make dev              Start development environment"
+	@echo "    make prod             Start production environment"
+	@echo "    make stop             Stop all containers"
+	@echo ""
+	@echo "  Operations:"
+	@echo "    make status           Show service health"
+	@echo "    make logs             View service logs"
+	@echo "    make doctor           Diagnose common issues"
+	@echo "    make backup           Backup data"
+	@echo "    make reset            Clean reset (wipe data)"
+	@echo "    make update           Pull latest + rebuild"
+	@echo "    make generate-certs   Generate TLS certificates"
+	@echo ""
+	@echo "  Development:"
+	@echo "    make test             Run tests and vet"
+	@echo "    make clean            Remove build artifacts"
+	@echo ""
+
+.PHONY: build build-core build-agent build-agent-arm build-agent-windows build-all \
+        dev prod stop status logs doctor backup reset update generate-certs \
+        test clean help

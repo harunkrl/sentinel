@@ -2,8 +2,7 @@ services:
   influxdb:
     image: influxdb:2.7
     container_name: sentinel_influx
-    ports:
-      - "8086:8086"
+    # Ports exposed only in docker-compose.dev.yml for debugging
     environment:
       - DOCKER_INFLUXDB_INIT_MODE=setup
       - DOCKER_INFLUXDB_INIT_USERNAME=${DOCKER_INFLUXDB_INIT_USERNAME}
@@ -23,6 +22,8 @@ services:
         limits:
           memory: 1G
     restart: always
+    networks:
+      - backend
 
   core:
     build:
@@ -48,6 +49,9 @@ services:
       influxdb:
         condition: service_healthy
     restart: always
+    networks:
+      - frontend
+      - backend
 
   web:
     build:
@@ -61,7 +65,17 @@ services:
     volumes:
       # Mount binaries directory to Nginx for agent downloads
       - ./deploy/downloads:/usr/share/nginx/html/downloads:ro
+    networks:
+      - frontend
+
+networks:
+  frontend:
+    driver: bridge
+  backend:
+    driver: bridge
 
 volumes:
   influxdb_data:
   sentinel_data:
+
+

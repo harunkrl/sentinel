@@ -1,0 +1,45 @@
+# Git
+.git
+.gitignore
+
+# Build artifacts
+bin/
+*.exe
+*.test
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Node.js (frontend dependencies re-installed in Docker)
+web/node_modules/
+website/node_modules/
+website/
+
+# Documentation and meta
+docs/
+README.md
+*.md
+!deploy/
+
+# Environment files
+.env
+.env.*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Agent Downloads (built separately)
+deploy/downloads/*.exe
+deploy/downloads/sentinel-agent-*
+
+# Gemini
+.gemini/
+.agent/
+
+# GitHub
+.github/

@@ -3,7 +3,10 @@
 
 param (
     [Parameter(Mandatory=$true)]
-    [string]$ServerIP
+    [string]$ServerIP,
+
+    [Parameter(Mandatory=$false)]
+    [string]$WebPort = "80"
 )
 
 # Configuration
@@ -11,7 +14,6 @@ $ProcessName = "sentinel-agent-windows-amd64"
 $BinaryName = "sentinel-agent.exe"
 $InstallDir = "C:\Program Files\Sentinel"
 $ServiceName = "SentinelAgent"
-$WebPort = "3000"
 $CorePort = "50051"
 
 # Check Administrator Privileges
@@ -22,7 +24,7 @@ if (-not $currentPrincipal.IsInRole([Security.Principal.WindowsBuiltInRole]::Adm
 }
 
 Write-Host "🚀 Sentinel Agent Installer (Windows)" -ForegroundColor Cyan
-Write-Host "Target Server: $ServerIP" -ForegroundColor Gray
+Write-Host "Target Server: $ServerIP (Web Port: $WebPort)" -ForegroundColor Gray
 
 # 1. Create Directory
 if (-not (Test-Path -Path $InstallDir)) {
@@ -39,7 +41,11 @@ if ($service) {
 }
 
 # 3. Download Binary
-$DownloadUrl = "http://${ServerIP}:${WebPort}/downloads/${ProcessName}.exe"
+if ($WebPort -eq "80") {
+    $DownloadUrl = "http://${ServerIP}/downloads/${ProcessName}.exe"
+} else {
+    $DownloadUrl = "http://${ServerIP}:${WebPort}/downloads/${ProcessName}.exe"
+}
 $DestPath = "$InstallDir\$BinaryName"
 
 Write-Host "⬇️  Downloading Agent from $DownloadUrl..." -ForegroundColor Cyan
@@ -58,24 +64,22 @@ if (Test-Path -Path $DestPath) {
     exit 1
 }
 
-# 4. Create/Update Service
-# We use sc.exe for reliable service creation with arguments
-$BinPath = "$DestPath"
-# Environment variables for service can be tricky in Windows. 
-# Best way for Go method: Set machine-level environment variable OR pass as flag.
-# Our agent looks for CORE_ADDRESS env var.
-# Let's set it globally for the machine (Persistent)
+# 4. Set Environment Variables (Persistent, Machine-level)
 [System.Environment]::SetEnvironmentVariable("CORE_ADDRESS", "${ServerIP}:${CorePort}", "Machine")
-Write-Host "✅ Environment variable CORE_ADDRESS set to ${ServerIP}:${CorePort}" -ForegroundColor Green
+Write-Host "✅ CORE_ADDRESS set to ${ServerIP}:${CorePort}" -ForegroundColor Green
 
+[System.Environment]::SetEnvironmentVariable("SENTINEL_INSECURE_TLS", "true", "Machine")
+Write-Host "✅ SENTINEL_INSECURE_TLS set to true (plaintext gRPC)" -ForegroundColor Green
+
+# 5. Create/Update Service
 if (-not $service) {
     Write-Host "🔧 Creating Windows Service..." -ForegroundColor Cyan
-    New-Service -Name $ServiceName -BinaryPathName $BinPath -DisplayName "Sentinel System Monitor" -StartupType Automatic
+    New-Service -Name $ServiceName -BinaryPathName $DestPath -DisplayName "Sentinel System Monitor" -StartupType Automatic
 } else {
     Write-Host "🔧 Service already exists. Binary updated." -ForegroundColor Cyan
 }
 
-# 5. Start Service
+# 6. Start Service
 Write-Host "▶️  Starting Service..." -ForegroundColor Cyan
 Start-Service -Name $ServiceName
 

@@ -282,10 +282,23 @@ useEffect(() => {
 ### 4.1 Working Principle
 
 ```go
-func main() {
-    // 1. Establish gRPC connection
-    conn, _ := grpc.Dial(coreAddress, grpc.WithInsecure())
-    client := proto.NewSystemMonitorClient(conn)
+func runAgent(addr string, col *collector.Collector) error {
+    // 1. TLS or Plaintext mode
+    // Default: Secure (TLS with cert verification)
+    // Set SENTINEL_INSECURE_TLS=true for plaintext gRPC (no TLS)
+    insecureTLS := os.Getenv("SENTINEL_INSECURE_TLS") == "true"
+
+    var dialOpt grpc.DialOption
+    if insecureTLS {
+        log.Println("⚠️ WARNING: Running in INSECURE mode (no TLS)")
+        dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
+    } else {
+        tlsConfig := &tls.Config{}
+        creds := credentials.NewTLS(tlsConfig)
+        dialOpt = grpc.WithTransportCredentials(creds)
+    }
+
+    conn, _ := grpc.NewClient(addr, dialOpt)
     
     // 2. Start Bidirectional stream
     stream, _ := client.StreamTelemetry(context.Background())
@@ -310,10 +323,12 @@ func main() {
             Type: proto.Telemetry_METRICS,
             Metrics: metrics,
         })
-        time.Sleep(5 * time.Second)
+        time.Sleep(interval) // Default 2s, configurable via METRIC_INTERVAL_SECONDS
     }
 }
 ```
+
+> **Note:** When `SENTINEL_INSECURE_TLS=true`, the agent uses `insecure.NewCredentials()` for plaintext gRPC. This must match the Core Server's mode — if the Core has no TLS certificates, it also runs in plaintext.
 
 ### 4.2 Metric Collection (`gopsutil`)
 
@@ -403,13 +418,27 @@ message Command {
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/health` | GET | Liveness check |
 | `/api/auth/login` | POST | Get JWT token |
+| `/api/auth/check` | GET | Verify token validity |
+| `/api/auth/change-password` | POST | Change password |
 | `/api/agents` | GET | List agents |
 | `/api/agent/:id/history` | GET | Metric history |
 | `/api/agent/:id/stats?range=1h` | GET | Avg/Min/Max stats |
 | `/api/agent/:id/action` | POST | Send command |
+| `/api/agent/:id/processes` | POST | List processes |
+| `/api/agent/:id/kill` | POST | Kill process |
+| `/api/agent/:id/containers` | GET | List containers |
+| `/api/agent/:id/docker` | POST | Container action |
+| `/api/agent/:id/services` | GET | List services |
+| `/api/agent/:id/service/action` | POST | Service action |
+| `/api/agent/:id/update` | POST | Remote agent update |
+| `/api/agent/:id/wake` | POST | Wake agent |
+| `/api/agent/:id/logs` | GET | Agent logs |
+| `/api/command/:id` | GET | Command result |
 | `/api/settings` | GET/POST | Settings |
 | `/api/events` | GET | SSE stream |
+| `/api/audit-logs` | GET/DELETE | Audit logs |
 
 ---
 
@@ -464,7 +493,34 @@ CREATE TABLE audit_logs (
 
 ## 7. Security Implementation
 
-### 7.1 JWT Authentication
+### 7.1 gRPC Transport Security (TLS / Plaintext)
+
+The Core Server and Agent both support TLS and plaintext gRPC:
+
+**Core Server** automatically detects TLS certificates:
+```go
+// Core attempts to load TLS certs; falls back to plaintext if not found
+creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+if err != nil {
+    log.Println("Warning: Falling back to INSECURE mode")
+    grpcServer = grpc.NewServer() // Plaintext
+} else {
+    grpcServer = grpc.NewServer(grpc.Creds(creds)) // TLS
+}
+```
+
+**Agent** uses `SENTINEL_INSECURE_TLS=true` for plaintext:
+```go
+if insecureTLS {
+    dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials()) // Plaintext
+} else {
+    dialOpt = grpc.WithTransportCredentials(credentials.NewTLS(&tls.Config{})) // TLS
+}
+```
+
+> Both sides must be in the same mode. If the Core runs in plaintext (no certs), the Agent must set `SENTINEL_INSECURE_TLS=true`.
+
+### 7.2 JWT Authentication
 
 ```go
 func GenerateToken(username, role string) (string, error) {
@@ -480,7 +536,7 @@ func GenerateToken(username, role string) (string, error) {
 }
 ```
 
-### 7.2 Rate Limiting
+### 7.3 Rate Limiting
 
 ```go
 type RateLimiter struct {
@@ -538,7 +594,15 @@ services:
     depends_on: [core]
 ```
 
-### 8.3 Port Configuration
+### 8.3 Auto Environment Setup
+
+The `compile_and_run.sh` script automatically handles environment configuration:
+
+1. **Auto `.env` creation**: Creates `.env` from `.env.production.example` (prod) or `.env.example` (dev) if missing.
+2. **Auto server IP detection**: Uses `hostname -I` to determine the LAN IP for install commands.
+3. **InfluxDB token matching**: `INFLUXDB_TOKEN` must match `DOCKER_INFLUXDB_INIT_ADMIN_TOKEN` in `.env`.
+
+### 8.4 Port Configuration
 
 | Port | Environment | Service | Description |
 |------|-------------|---------|-------------|
@@ -553,6 +617,23 @@ services:
 ./compile_and_run.sh --prod  # Port 80
 ./compile_and_run.sh --dev   # Port 3000
 ```
+
+### 8.5 Operations Tooling
+
+Sentinel provides a suite of CLI tools for common operational tasks, all accessible via `make` shortcuts:
+
+| Command | Script | Purpose |
+|---------|--------|---------|
+| `make dev` / `make prod` | `scripts/dev.sh`, `scripts/prod.sh` | Start environments (wrappers for `compile_and_run.sh`) |
+| `make status` | `scripts/status.sh` | Container health, uptime, resource usage |
+| `make logs` | `scripts/logs.sh` | Filtered, colorized log viewer |
+| `make doctor` | `scripts/doctor.sh` | Diagnose `.env` tokens, port conflicts, Docker, TLS |
+| `make backup` | `scripts/backup.sh` | Backup InfluxDB + SQLite + settings → `.tar.gz` |
+| `make reset` | `scripts/reset.sh` | Clean wipe of all data volumes (interactive) |
+| `make update` | `scripts/update.sh` | `git pull` + auto-backup + rebuild |
+| `make generate-certs` | `scripts/generate-certs.sh` | Self-signed TLS certificate generator with SAN |
+
+The `Makefile` acts as a unified command interface, covering build, Docker lifecycle, operations, and development tasks.
 
 ---
 
@@ -602,7 +683,7 @@ This document comprehensively explains the technical details of the Sentinel pro
 
 - **Separation of Concerns**: Each module has a single responsibility
 - **Dependency Injection**: Testable code
-- **Type Safety**: Protobuf and TypeScript
+- **Type Safety**: Protobuf
 - **Security First**: JWT, rate limiting, bcrypt
 
 Questions? [GitHub Issues](https://github.com/harunkrl/sentinel/issues)

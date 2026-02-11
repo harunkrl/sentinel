@@ -83,6 +83,7 @@
 | Linux/Windows | Go + gopsutil |
 | Docker SDK | Docker API client |
 | Systemd | D-Bus interface |
+| TLS / Insecure | Configurable via `SENTINEL_INSECURE_TLS` |
 
 ### DevOps
 | Component | Technology |
@@ -107,33 +108,34 @@
 git clone https://github.com/harunkrl/sentinel.git
 cd sentinel
 
-# Configure environment variables
-cp .env.example .env
-# Edit .env file if needed
-
 # Start Development environment
-./scripts/dev.sh
-# or
+# (.env is auto-created from .env.example if missing)
 ./compile_and_run.sh --dev
 
 # Get initial admin password
 docker logs sentinel_core | grep -A3 "INITIAL ADMIN"
 ```
 
+> **Note:** If no `.env` file exists, the startup script automatically creates one from `.env.example` (dev) or `.env.production.example` (prod).
+
 ### 2. Production Setup
 
 ```bash
 # Create production environment file
 cp .env.production.example .env
-# Update values in .env (IMPORTANT!)
+# IMPORTANT: Edit .env and set secure values
+# INFLUXDB_TOKEN must match DOCKER_INFLUXDB_INIT_ADMIN_TOKEN
+nano .env
 
 # Start Production
-./scripts/prod.sh
-# or
 ./compile_and_run.sh --prod
 ```
 
+> **Important:** `INFLUXDB_TOKEN` and `DOCKER_INFLUXDB_INIT_ADMIN_TOKEN` **must be identical**, otherwise InfluxDB will return 401 Unauthorized errors.
+
 ### 3. Agent Installation
+
+The startup script auto-detects your server's LAN IP and prints the correct install command. You can also copy it from the Dashboard's "Add Agent" button.
 
 #### Linux (Production - Port 80)
 ```bash
@@ -142,7 +144,7 @@ curl -sL http://<SERVER_IP>/downloads/install.sh | sudo bash -s <SERVER_IP>
 
 #### Linux (Development - Port 3000)
 ```bash
-curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP> 3000
+curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP>
 ```
 
 #### Windows (PowerShell - Admin)
@@ -151,7 +153,66 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>/downloads/install.ps1" -OutFile "inst
 .\install.ps1 -ServerIP <SERVER_IP>
 ```
 
-> **Tip:** You can copy the correct command by clicking the "Add Agent" button on the Dashboard.
+> **Tip:** When running without TLS certificates, set `SENTINEL_INSECURE_TLS=true` in the agent's systemd service file to enable plaintext gRPC communication.
+
+---
+
+## 🔑 Environment Variables
+
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `INFLUXDB_URL` | `http://influxdb:8086` | InfluxDB connection URL |
+| `INFLUXDB_TOKEN` | — | InfluxDB auth token (**must match** `DOCKER_INFLUXDB_INIT_ADMIN_TOKEN`) |
+| `DOCKER_INFLUXDB_INIT_ADMIN_TOKEN` | — | InfluxDB init token |
+| `JWT_SECRET` | auto | JWT signing key |
+| `CORS_ALLOWED_ORIGINS` | `*` | Allowed CORS origins |
+| `GRPC_PORT` | `50051` | gRPC server port |
+| `METRIC_INTERVAL_SECONDS` | `2` | Agent metric collection interval |
+| `ALERT_DEBOUNCE_MINUTES` | `5` | Alert notification cooldown |
+| `SENTINEL_INSECURE_TLS` | `false` | Agent: use plaintext gRPC (no TLS) |
+| `NTFY_TOPIC` | — | Ntfy.sh topic for push notifications |
+
+---
+
+## 🛠 Operations Scripts
+
+Sentinel includes utility scripts for common operational tasks. All scripts are available via `make` shortcuts.
+
+### Quick Reference
+
+| Command | Script | Description |
+|---------|--------|-------------|
+| `make dev` | `scripts/dev.sh` | Start development environment |
+| `make prod` | `scripts/prod.sh` | Start production environment |
+| `make stop` | — | Stop all containers |
+| `make status` | `scripts/status.sh` | Service health check (uptime, resources) |
+| `make logs` | `scripts/logs.sh` | Filtered log viewer (`--errors`, `--follow`) |
+| `make doctor` | `scripts/doctor.sh` | Diagnose .env, ports, Docker, TLS |
+| `make backup` | `scripts/backup.sh` | Backup InfluxDB + SQLite + settings |
+| `make reset` | `scripts/reset.sh` | Clean wipe all data (interactive) |
+| `make update` | `scripts/update.sh` | git pull + backup + rebuild |
+| `make generate-certs` | `scripts/generate-certs.sh` | Generate self-signed TLS certificates |
+| `make build-all` | — | Build core + all agent binaries |
+| `make test` | — | Run tests and `go vet` |
+
+### Examples
+
+```bash
+# Quick health check
+make status
+
+# Diagnose common issues
+make doctor
+
+# View only error logs
+./scripts/logs.sh --errors
+
+# Backup before maintenance
+make backup
+
+# Generate TLS certs for gRPC
+make generate-certs
+```
 
 ---
 
@@ -159,8 +220,8 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>/downloads/install.ps1" -OutFile "inst
 
 ### Dashboard
 1. Open in browser:
-   - **Production:** `http://localhost` (port 80)
-   - **Development:** `http://localhost:3000`
+   - **Production:** `http://<SERVER_IP>` (port 80)
+   - **Development:** `http://<SERVER_IP>:3000`
 2. Login with Admin credentials.
 3. View connected agents on the dashboard.
 
@@ -187,20 +248,36 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>/downloads/install.ps1" -OutFile "inst
 
 ## 📡 API Reference
 
+### Public
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/health` | Liveness check (Docker/LB probes) |
+
 ### Authentication
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| POST | `/api/auth/login` | Login |
+| POST | `/api/auth/login` | Login, returns JWT |
+| GET | `/api/auth/check` | Verify token validity |
 | POST | `/api/auth/change-password` | Change password |
 
 ### Agent Management
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/agents` | List all agents |
+| DELETE | `/api/agent/:id` | Remove agent |
 | GET | `/api/agent/:id/history` | Metric history |
 | GET | `/api/agent/:id/stats?range=1h` | Avg/Min/Max stats |
 | POST | `/api/agent/:id/action` | Send system command |
-| DELETE | `/api/agent/:id` | Remove agent |
+| POST | `/api/agent/:id/update` | Remote agent update |
+| POST | `/api/agent/:id/wake` | Wake agent |
+| GET | `/api/agent/:id/logs` | Get agent logs |
+| GET | `/api/command/:id` | Get command result |
+
+### Processes
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/agent/:id/processes` | List processes |
+| POST | `/api/agent/:id/kill` | Kill process |
 
 ### Docker
 | Method | Endpoint | Description |
@@ -214,16 +291,18 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>/downloads/install.ps1" -OutFile "inst
 | GET | `/api/agent/:id/services` | List services |
 | POST | `/api/agent/:id/service/action` | Service action |
 
-### Settings
+### Settings & Events
 | Method | Endpoint | Description |
 |--------|----------|-------------|
 | GET | `/api/settings` | Get settings |
 | POST | `/api/settings` | Save settings |
+| GET | `/api/events` | SSE live event stream |
 
-### SSE (Real-time)
+### Audit
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| GET | `/api/events` | Live event stream |
+| GET | `/api/audit-logs` | Get audit logs |
+| DELETE | `/api/audit-logs` | Clear audit logs |
 
 ---
 
@@ -261,8 +340,16 @@ sentinel/
 │   ├── Dockerfile.web
 │   └── downloads/         # Agent install scripts
 ├── scripts/
-│   ├── dev.sh
-│   └── prod.sh
+│   ├── dev.sh             # Dev wrapper → compile_and_run.sh
+│   ├── prod.sh            # Prod wrapper → compile_and_run.sh
+│   ├── status.sh          # Service health check
+│   ├── logs.sh            # Filtered log viewer
+│   ├── doctor.sh          # Diagnostics
+│   ├── backup.sh          # Data backup
+│   ├── reset.sh           # Clean reset
+│   ├── update.sh          # Self-update server
+│   └── generate-certs.sh  # TLS certificate generator
+├── Makefile               # Unified command interface
 ├── docker-compose.yml
 ├── docker-compose.dev.yml
 └── docker-compose.prod.yml
@@ -314,7 +401,7 @@ graph TB
 
 | Feature | Implementation |
 |---------|----------------|
-| **TLS/SSL** | End-to-end encryption for gRPC (Agent-Core) |
+| **gRPC Transport** | TLS by default; auto-fallback to plaintext if no certs found (`SENTINEL_INSECURE_TLS`) |
 | Authentication | JWT (24-hour validity) |
 | Password Hashing | bcrypt |
 | Rate Limiting | **Token Bucket** algorithm (golang.org/x/time/rate) |
@@ -327,10 +414,13 @@ graph TB
 
 ### Local Development
 ```bash
-# Backend
+# Start everything in dev mode (recommended)
+make dev
+
+# Run backend only
 go run cmd/core/main.go
 
-# Frontend
+# Run frontend only
 cd web && npm install && npm run dev
 
 # Website (Landing & Docs)
@@ -340,11 +430,24 @@ cd website && npm install && npm run dev
 go run cmd/agent/main.go --server=localhost:50051
 ```
 
+### Build Agents
+```bash
+make build-all    # Core + Linux + ARM + Windows agents
+make build-agent   # Linux AMD64 only
+```
+
 ### Proto Compilation
 ```bash
+# Handled automatically by compile_and_run.sh, or manually:
 protoc --go_out=. --go_opt=paths=source_relative \
     --go-grpc_out=. --go-grpc_opt=paths=source_relative \
     proto/service.proto
+```
+
+### Run Diagnostics
+```bash
+make doctor    # Check .env, ports, Docker, TLS certs
+make status    # Container health, uptime, resources
 ```
 
 ---

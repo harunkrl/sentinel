@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import axios from 'axios';
 import { Activity, Clock, Settings as SettingsIcon, Server, Cpu, HardDrive, Wifi, List, Trash2, LogOut, Star, Thermometer, Plus, X, Copy, Check, RefreshCw } from 'lucide-react';
 import { formatDistanceToNow } from 'date-fns';
@@ -29,6 +29,11 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
     const [showUpdateAllConfirm, setShowUpdateAllConfirm] = useState(false);
     const [isUpdatingAll, setIsUpdatingAll] = useState(false);
     const [updateProgress, setUpdateProgress] = useState({ current: 0, total: 0, completed: [] });
+
+    // Check for insecure connection
+    const isInsecure = window.location.protocol === 'http:' &&
+        window.location.hostname !== 'localhost' &&
+        window.location.hostname !== '127.0.0.1';
 
     const toggleFavorite = (hostname, e) => {
         e.stopPropagation();
@@ -147,6 +152,9 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         }
     };
 
+    // Debounce ref
+    const updateTimeout = useRef(null);
+
     useEffect(() => {
         fetchAgents();
         fetchAuditLogs();
@@ -160,9 +168,15 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
 
             eventSource = new EventSource(`${API_BASE}/events?token=${token}`);
 
-            eventSource.onmessage = () => {
-                fetchAgents();
-                fetchAuditLogs();
+            eventSource.onmessage = (event) => {
+                // Throttle updates to max once per second
+                if (!updateTimeout.current) {
+                    updateTimeout.current = setTimeout(() => {
+                        fetchAgents();
+                        fetchAuditLogs();
+                        updateTimeout.current = null;
+                    }, 1000);
+                }
             };
 
             eventSource.onerror = (err) => {
@@ -182,6 +196,7 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
         return () => {
             if (eventSource) eventSource.close();
             if (reconnectTimeout) clearTimeout(reconnectTimeout);
+            if (updateTimeout.current) clearTimeout(updateTimeout.current);
             clearInterval(pollInterval);
         };
     }, []);
@@ -326,7 +341,10 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
                     </div>
                     <div>
                         <h1 className="text-2xl md:text-3xl font-bold tracking-tight bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent">Sentinel Dashboard</h1>
-                        <p className="text-gray-500 text-xs md:text-sm">System Monitoring & Management</p>
+                        <div className="flex items-center gap-2">
+                            <p className="text-gray-500 text-xs md:text-sm">System Monitoring & Management</p>
+
+                        </div>
                     </div>
                 </div>
 

@@ -3,9 +3,11 @@ package main
 import (
 	"context"
 	"crypto/tls"
+	"crypto/x509"
 	"fmt"
 	"log"
 	"net"
+	"net/url"
 	"os"
 	"os/exec"
 	"regexp"
@@ -62,6 +64,10 @@ func runAgent(addr string, col *collector.Collector) error {
 	// Default: Secure (Verify Cert)
 	// Dev/Self-Signed: Set SENTINEL_INSECURE_TLS=true for plaintext gRPC (no TLS)
 	insecureTLS := os.Getenv("SENTINEL_INSECURE_TLS") == "true"
+	// Self-Signed Certs: Set SENTINEL_SKIP_TLS_VERIFY=true to use TLS but skip verification
+	skipTLSVerify := os.Getenv("SENTINEL_SKIP_TLS_VERIFY") == "true"
+	// Professional: Load Custom CA File
+	caFile := os.Getenv("SENTINEL_CA_FILE")
 
 	var dialOpt grpc.DialOption
 	if insecureTLS {
@@ -69,6 +75,24 @@ func runAgent(addr string, col *collector.Collector) error {
 		dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
 	} else {
 		tlsConfig := &tls.Config{}
+		if skipTLSVerify {
+			log.Println("⚠️ WARNING: Running in SECURE mode but SKIPPING CERT VERIFICATION (Self-Signed)")
+			tlsConfig.InsecureSkipVerify = true
+		} else if caFile != "" {
+			// Load CA Cert
+			pemServerCA, err := os.ReadFile(caFile)
+			if err != nil {
+				log.Fatalf("❌ Error loading CA file: %v", err)
+			}
+			certPool := x509.NewCertPool()
+			if !certPool.AppendCertsFromPEM(pemServerCA) {
+				log.Fatalf("❌ Error parsing CA file")
+			}
+			tlsConfig.RootCAs = certPool
+			log.Printf("🔒 Secure Mode: Using Custom CA from %s", caFile)
+		} else {
+			log.Println("🔒 Running in SECURE mode (System Root CAs)")
+		}
 		creds := credentials.NewTLS(tlsConfig)
 		dialOpt = grpc.WithTransportCredentials(creds)
 	}
@@ -202,16 +226,32 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 
 	// --- UPDATE AGENT ACTION ---
 	if cmd.Type == proto.Command_UPDATE_AGENT {
-		coreAddr := os.Getenv("CORE_ADDRESS")
-		host, _, _ := net.SplitHostPort(coreAddr)
+		var downloadURL string
+		var serverHost string
 
-		if host == "" || host == "localhost" || host == "127.0.0.1" {
-			if host == "" {
-				host = "localhost"
+		// Try to get URL from payload
+		if req := cmd.GetUpdateAgent(); req != nil && req.DownloadUrl != "" {
+			downloadURL = req.DownloadUrl
+			// Extract host for the install script argument
+			if u, err := url.Parse(downloadURL); err == nil {
+				serverHost = u.Hostname()
 			}
 		}
 
-		downloadURL := fmt.Sprintf("http://%s:3000/downloads/install.sh", host)
+		// Fallback if no payload (backward compatibility)
+		if downloadURL == "" {
+			coreAddr := os.Getenv("CORE_ADDRESS")
+			host, _, _ := net.SplitHostPort(coreAddr)
+			if host == "" || host == "localhost" || host == "127.0.0.1" {
+				if host == "" {
+					host = "localhost"
+				}
+			}
+			serverHost = host
+			downloadURL = fmt.Sprintf("http://%s:3000/downloads/install.sh", host)
+			log.Printf("⚠️ Warning: Legacy update command received. Using fallback URL: %s", downloadURL)
+		}
+
 		log.Printf("🔄 Update requested. Script URL: %s", downloadURL)
 
 		go func() {
@@ -222,7 +262,7 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 			// 2. Download and run script.
 			// The script includes "systemctl stop" so it will override the running service.
 
-			fullCmd := fmt.Sprintf("sleep 5; curl -fsSL %s | bash -s %s", downloadURL, host)
+			fullCmd := fmt.Sprintf("sleep 5; curl -fsSL %s | bash -s %s", downloadURL, serverHost)
 
 			var finalCmd *exec.Cmd
 

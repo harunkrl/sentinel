@@ -516,6 +516,7 @@ type Command struct {
 	//	*Command_DockerAction
 	//	*Command_ListServices
 	//	*Command_ServiceAction
+	//	*Command_UpdateAgent
 	Payload       isCommand_Payload `protobuf_oneof:"payload"`
 	unknownFields protoimpl.UnknownFields
 	sizeCache     protoimpl.SizeCache
@@ -635,6 +636,15 @@ func (x *Command) GetServiceAction() *ServiceActionRequest {
 	return nil
 }
 
+func (x *Command) GetUpdateAgent() *UpdateAgentRequest {
+	if x != nil {
+		if x, ok := x.Payload.(*Command_UpdateAgent); ok {
+			return x.UpdateAgent
+		}
+	}
+	return nil
+}
+
 type isCommand_Payload interface {
 	isCommand_Payload()
 }
@@ -667,6 +677,10 @@ type Command_ServiceAction struct {
 	ServiceAction *ServiceActionRequest `protobuf:"bytes,9,opt,name=service_action,json=serviceAction,proto3,oneof"` // --- NEW ---
 }
 
+type Command_UpdateAgent struct {
+	UpdateAgent *UpdateAgentRequest `protobuf:"bytes,10,opt,name=update_agent,json=updateAgent,proto3,oneof"` // --- NEW ---
+}
+
 func (*Command_KillProcess) isCommand_Payload() {}
 
 func (*Command_ListProcesses) isCommand_Payload() {}
@@ -681,6 +695,52 @@ func (*Command_ListServices) isCommand_Payload() {}
 
 func (*Command_ServiceAction) isCommand_Payload() {}
 
+func (*Command_UpdateAgent) isCommand_Payload() {}
+
+type UpdateAgentRequest struct {
+	state         protoimpl.MessageState `protogen:"open.v1"`
+	DownloadUrl   string                 `protobuf:"bytes,1,opt,name=download_url,json=downloadUrl,proto3" json:"download_url,omitempty"`
+	unknownFields protoimpl.UnknownFields
+	sizeCache     protoimpl.SizeCache
+}
+
+func (x *UpdateAgentRequest) Reset() {
+	*x = UpdateAgentRequest{}
+	mi := &file_proto_service_proto_msgTypes[4]
+	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+	ms.StoreMessageInfo(mi)
+}
+
+func (x *UpdateAgentRequest) String() string {
+	return protoimpl.X.MessageStringOf(x)
+}
+
+func (*UpdateAgentRequest) ProtoMessage() {}
+
+func (x *UpdateAgentRequest) ProtoReflect() protoreflect.Message {
+	mi := &file_proto_service_proto_msgTypes[4]
+	if x != nil {
+		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
+		if ms.LoadMessageInfo() == nil {
+			ms.StoreMessageInfo(mi)
+		}
+		return ms
+	}
+	return mi.MessageOf(x)
+}
+
+// Deprecated: Use UpdateAgentRequest.ProtoReflect.Descriptor instead.
+func (*UpdateAgentRequest) Descriptor() ([]byte, []int) {
+	return file_proto_service_proto_rawDescGZIP(), []int{4}
+}
+
+func (x *UpdateAgentRequest) GetDownloadUrl() string {
+	if x != nil {
+		return x.DownloadUrl
+	}
+	return ""
+}
+
 type KillProcessRequest struct {
 	state         protoimpl.MessageState `protogen:"open.v1"`
 	Pid           int32                  `protobuf:"varint,1,opt,name=pid,proto3" json:"pid,omitempty"`
@@ -690,7 +750,7 @@ type KillProcessRequest struct {
 
 func (x *KillProcessRequest) Reset() {
 	*x = KillProcessRequest{}
-	mi := &file_proto_service_proto_msgTypes[4]
+	mi := &file_proto_service_proto_msgTypes[5]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -702,7 +762,7 @@ func (x *KillProcessRequest) String() string {
 func (*KillProcessRequest) ProtoMessage() {}
 
 func (x *KillProcessRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[4]
+	mi := &file_proto_service_proto_msgTypes[5]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -715,7 +775,7 @@ func (x *KillProcessRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use KillProcessRequest.ProtoReflect.Descriptor instead.
 func (*KillProcessRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{4}
+	return file_proto_service_proto_rawDescGZIP(), []int{5}
 }
 
 func (x *KillProcessRequest) GetPid() int32 {
@@ -733,7 +793,7 @@ type ListProcessesRequest struct {
 
 func (x *ListProcessesRequest) Reset() {
 	*x = ListProcessesRequest{}
-	mi := &file_proto_service_proto_msgTypes[5]
+	mi := &file_proto_service_proto_msgTypes[6]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -745,7 +805,7 @@ func (x *ListProcessesRequest) String() string {
 func (*ListProcessesRequest) ProtoMessage() {}
 
 func (x *ListProcessesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[5]
+	mi := &file_proto_service_proto_msgTypes[6]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -758,7 +818,7 @@ func (x *ListProcessesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListProcessesRequest.ProtoReflect.Descriptor instead.
 func (*ListProcessesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{5}
+	return file_proto_service_proto_rawDescGZIP(), []int{6}
 }
 
 type FetchLogsRequest struct {
@@ -770,7 +830,7 @@ type FetchLogsRequest struct {
 
 func (x *FetchLogsRequest) Reset() {
 	*x = FetchLogsRequest{}
-	mi := &file_proto_service_proto_msgTypes[6]
+	mi := &file_proto_service_proto_msgTypes[7]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -782,7 +842,7 @@ func (x *FetchLogsRequest) String() string {
 func (*FetchLogsRequest) ProtoMessage() {}
 
 func (x *FetchLogsRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[6]
+	mi := &file_proto_service_proto_msgTypes[7]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -795,7 +855,7 @@ func (x *FetchLogsRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use FetchLogsRequest.ProtoReflect.Descriptor instead.
 func (*FetchLogsRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{6}
+	return file_proto_service_proto_rawDescGZIP(), []int{7}
 }
 
 func (x *FetchLogsRequest) GetLines() int32 {
@@ -813,7 +873,7 @@ type ListContainersRequest struct {
 
 func (x *ListContainersRequest) Reset() {
 	*x = ListContainersRequest{}
-	mi := &file_proto_service_proto_msgTypes[7]
+	mi := &file_proto_service_proto_msgTypes[8]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -825,7 +885,7 @@ func (x *ListContainersRequest) String() string {
 func (*ListContainersRequest) ProtoMessage() {}
 
 func (x *ListContainersRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[7]
+	mi := &file_proto_service_proto_msgTypes[8]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -838,7 +898,7 @@ func (x *ListContainersRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListContainersRequest.ProtoReflect.Descriptor instead.
 func (*ListContainersRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{7}
+	return file_proto_service_proto_rawDescGZIP(), []int{8}
 }
 
 // --- NEW SERVICE MESSAGES ---
@@ -850,7 +910,7 @@ type ListServicesRequest struct {
 
 func (x *ListServicesRequest) Reset() {
 	*x = ListServicesRequest{}
-	mi := &file_proto_service_proto_msgTypes[8]
+	mi := &file_proto_service_proto_msgTypes[9]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -862,7 +922,7 @@ func (x *ListServicesRequest) String() string {
 func (*ListServicesRequest) ProtoMessage() {}
 
 func (x *ListServicesRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[8]
+	mi := &file_proto_service_proto_msgTypes[9]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -875,7 +935,7 @@ func (x *ListServicesRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ListServicesRequest.ProtoReflect.Descriptor instead.
 func (*ListServicesRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{8}
+	return file_proto_service_proto_rawDescGZIP(), []int{9}
 }
 
 type ServiceActionRequest struct {
@@ -888,7 +948,7 @@ type ServiceActionRequest struct {
 
 func (x *ServiceActionRequest) Reset() {
 	*x = ServiceActionRequest{}
-	mi := &file_proto_service_proto_msgTypes[9]
+	mi := &file_proto_service_proto_msgTypes[10]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -900,7 +960,7 @@ func (x *ServiceActionRequest) String() string {
 func (*ServiceActionRequest) ProtoMessage() {}
 
 func (x *ServiceActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[9]
+	mi := &file_proto_service_proto_msgTypes[10]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -913,7 +973,7 @@ func (x *ServiceActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceActionRequest.ProtoReflect.Descriptor instead.
 func (*ServiceActionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{9}
+	return file_proto_service_proto_rawDescGZIP(), []int{10}
 }
 
 func (x *ServiceActionRequest) GetServiceName() string {
@@ -940,7 +1000,7 @@ type DockerActionRequest struct {
 
 func (x *DockerActionRequest) Reset() {
 	*x = DockerActionRequest{}
-	mi := &file_proto_service_proto_msgTypes[10]
+	mi := &file_proto_service_proto_msgTypes[11]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -952,7 +1012,7 @@ func (x *DockerActionRequest) String() string {
 func (*DockerActionRequest) ProtoMessage() {}
 
 func (x *DockerActionRequest) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[10]
+	mi := &file_proto_service_proto_msgTypes[11]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -965,7 +1025,7 @@ func (x *DockerActionRequest) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use DockerActionRequest.ProtoReflect.Descriptor instead.
 func (*DockerActionRequest) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{10}
+	return file_proto_service_proto_rawDescGZIP(), []int{11}
 }
 
 func (x *DockerActionRequest) GetContainerId() string {
@@ -1000,7 +1060,7 @@ type CommandResponse struct {
 
 func (x *CommandResponse) Reset() {
 	*x = CommandResponse{}
-	mi := &file_proto_service_proto_msgTypes[11]
+	mi := &file_proto_service_proto_msgTypes[12]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1012,7 +1072,7 @@ func (x *CommandResponse) String() string {
 func (*CommandResponse) ProtoMessage() {}
 
 func (x *CommandResponse) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[11]
+	mi := &file_proto_service_proto_msgTypes[12]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1025,7 +1085,7 @@ func (x *CommandResponse) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use CommandResponse.ProtoReflect.Descriptor instead.
 func (*CommandResponse) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{11}
+	return file_proto_service_proto_rawDescGZIP(), []int{12}
 }
 
 func (x *CommandResponse) GetCommandId() string {
@@ -1129,7 +1189,7 @@ type ProcessList struct {
 
 func (x *ProcessList) Reset() {
 	*x = ProcessList{}
-	mi := &file_proto_service_proto_msgTypes[12]
+	mi := &file_proto_service_proto_msgTypes[13]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1141,7 +1201,7 @@ func (x *ProcessList) String() string {
 func (*ProcessList) ProtoMessage() {}
 
 func (x *ProcessList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[12]
+	mi := &file_proto_service_proto_msgTypes[13]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1154,7 +1214,7 @@ func (x *ProcessList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessList.ProtoReflect.Descriptor instead.
 func (*ProcessList) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{12}
+	return file_proto_service_proto_rawDescGZIP(), []int{13}
 }
 
 func (x *ProcessList) GetProcesses() []*ProcessInfo {
@@ -1176,7 +1236,7 @@ type ProcessInfo struct {
 
 func (x *ProcessInfo) Reset() {
 	*x = ProcessInfo{}
-	mi := &file_proto_service_proto_msgTypes[13]
+	mi := &file_proto_service_proto_msgTypes[14]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1188,7 +1248,7 @@ func (x *ProcessInfo) String() string {
 func (*ProcessInfo) ProtoMessage() {}
 
 func (x *ProcessInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[13]
+	mi := &file_proto_service_proto_msgTypes[14]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1201,7 +1261,7 @@ func (x *ProcessInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ProcessInfo.ProtoReflect.Descriptor instead.
 func (*ProcessInfo) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{13}
+	return file_proto_service_proto_rawDescGZIP(), []int{14}
 }
 
 func (x *ProcessInfo) GetPid() int32 {
@@ -1241,7 +1301,7 @@ type ContainerList struct {
 
 func (x *ContainerList) Reset() {
 	*x = ContainerList{}
-	mi := &file_proto_service_proto_msgTypes[14]
+	mi := &file_proto_service_proto_msgTypes[15]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1253,7 +1313,7 @@ func (x *ContainerList) String() string {
 func (*ContainerList) ProtoMessage() {}
 
 func (x *ContainerList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[14]
+	mi := &file_proto_service_proto_msgTypes[15]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1266,7 +1326,7 @@ func (x *ContainerList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerList.ProtoReflect.Descriptor instead.
 func (*ContainerList) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{14}
+	return file_proto_service_proto_rawDescGZIP(), []int{15}
 }
 
 func (x *ContainerList) GetContainers() []*ContainerInfo {
@@ -1291,7 +1351,7 @@ type ContainerInfo struct {
 
 func (x *ContainerInfo) Reset() {
 	*x = ContainerInfo{}
-	mi := &file_proto_service_proto_msgTypes[15]
+	mi := &file_proto_service_proto_msgTypes[16]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1303,7 +1363,7 @@ func (x *ContainerInfo) String() string {
 func (*ContainerInfo) ProtoMessage() {}
 
 func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[15]
+	mi := &file_proto_service_proto_msgTypes[16]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1316,7 +1376,7 @@ func (x *ContainerInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ContainerInfo.ProtoReflect.Descriptor instead.
 func (*ContainerInfo) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{15}
+	return file_proto_service_proto_rawDescGZIP(), []int{16}
 }
 
 func (x *ContainerInfo) GetId() string {
@@ -1378,7 +1438,7 @@ type ServiceList struct {
 
 func (x *ServiceList) Reset() {
 	*x = ServiceList{}
-	mi := &file_proto_service_proto_msgTypes[16]
+	mi := &file_proto_service_proto_msgTypes[17]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1390,7 +1450,7 @@ func (x *ServiceList) String() string {
 func (*ServiceList) ProtoMessage() {}
 
 func (x *ServiceList) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[16]
+	mi := &file_proto_service_proto_msgTypes[17]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1403,7 +1463,7 @@ func (x *ServiceList) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceList.ProtoReflect.Descriptor instead.
 func (*ServiceList) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{16}
+	return file_proto_service_proto_rawDescGZIP(), []int{17}
 }
 
 func (x *ServiceList) GetServices() []*ServiceInfo {
@@ -1426,7 +1486,7 @@ type ServiceInfo struct {
 
 func (x *ServiceInfo) Reset() {
 	*x = ServiceInfo{}
-	mi := &file_proto_service_proto_msgTypes[17]
+	mi := &file_proto_service_proto_msgTypes[18]
 	ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 	ms.StoreMessageInfo(mi)
 }
@@ -1438,7 +1498,7 @@ func (x *ServiceInfo) String() string {
 func (*ServiceInfo) ProtoMessage() {}
 
 func (x *ServiceInfo) ProtoReflect() protoreflect.Message {
-	mi := &file_proto_service_proto_msgTypes[17]
+	mi := &file_proto_service_proto_msgTypes[18]
 	if x != nil {
 		ms := protoimpl.X.MessageStateOf(protoimpl.Pointer(x))
 		if ms.LoadMessageInfo() == nil {
@@ -1451,7 +1511,7 @@ func (x *ServiceInfo) ProtoReflect() protoreflect.Message {
 
 // Deprecated: Use ServiceInfo.ProtoReflect.Descriptor instead.
 func (*ServiceInfo) Descriptor() ([]byte, []int) {
-	return file_proto_service_proto_rawDescGZIP(), []int{17}
+	return file_proto_service_proto_rawDescGZIP(), []int{18}
 }
 
 func (x *ServiceInfo) GetName() string {
@@ -1536,7 +1596,7 @@ const file_proto_service_proto_rawDesc = "" +
 	" \x01(\x01R\x05load5\x12\x17\n" +
 	"\aload_15\x18\v \x01(\x01R\x06load15\x12$\n" +
 	"\x0edisk_read_mbps\x18\f \x01(\x01R\fdiskReadMbps\x12&\n" +
-	"\x0fdisk_write_mbps\x18\r \x01(\x01R\rdiskWriteMbps\"\xb6\x06\n" +
+	"\x0fdisk_write_mbps\x18\r \x01(\x01R\rdiskWriteMbps\"\xf9\x06\n" +
 	"\aCommand\x12\x0e\n" +
 	"\x02id\x18\x01 \x01(\tR\x02id\x12*\n" +
 	"\x04type\x18\x02 \x01(\x0e2\x16.sentinel.Command.TypeR\x04type\x12A\n" +
@@ -1547,7 +1607,9 @@ const file_proto_service_proto_rawDesc = "" +
 	"\x0flist_containers\x18\x06 \x01(\v2\x1f.sentinel.ListContainersRequestH\x00R\x0elistContainers\x12D\n" +
 	"\rdocker_action\x18\a \x01(\v2\x1d.sentinel.DockerActionRequestH\x00R\fdockerAction\x12D\n" +
 	"\rlist_services\x18\b \x01(\v2\x1d.sentinel.ListServicesRequestH\x00R\flistServices\x12G\n" +
-	"\x0eservice_action\x18\t \x01(\v2\x1e.sentinel.ServiceActionRequestH\x00R\rserviceAction\"\xf9\x01\n" +
+	"\x0eservice_action\x18\t \x01(\v2\x1e.sentinel.ServiceActionRequestH\x00R\rserviceAction\x12A\n" +
+	"\fupdate_agent\x18\n" +
+	" \x01(\v2\x1c.sentinel.UpdateAgentRequestH\x00R\vupdateAgent\"\xf9\x01\n" +
 	"\x04Type\x12\v\n" +
 	"\aUNKNOWN\x10\x00\x12\x10\n" +
 	"\fKILL_PROCESS\x10\x01\x12\x11\n" +
@@ -1564,7 +1626,9 @@ const file_proto_service_proto_rawDesc = "" +
 	"\fUPDATE_AGENT\x10\t\x12\x11\n" +
 	"\rLIST_SERVICES\x10\v\x12\x12\n" +
 	"\x0eSERVICE_ACTION\x10\fB\t\n" +
-	"\apayload\"&\n" +
+	"\apayload\"7\n" +
+	"\x12UpdateAgentRequest\x12!\n" +
+	"\fdownload_url\x18\x01 \x01(\tR\vdownloadUrl\"&\n" +
 	"\x12KillProcessRequest\x12\x10\n" +
 	"\x03pid\x18\x01 \x01(\x05R\x03pid\"\x16\n" +
 	"\x14ListProcessesRequest\"(\n" +
@@ -1634,53 +1698,55 @@ func file_proto_service_proto_rawDescGZIP() []byte {
 }
 
 var file_proto_service_proto_enumTypes = make([]protoimpl.EnumInfo, 1)
-var file_proto_service_proto_msgTypes = make([]protoimpl.MessageInfo, 18)
+var file_proto_service_proto_msgTypes = make([]protoimpl.MessageInfo, 19)
 var file_proto_service_proto_goTypes = []any{
 	(Command_Type)(0),             // 0: sentinel.Command.Type
 	(*Telemetry)(nil),             // 1: sentinel.Telemetry
 	(*Handshake)(nil),             // 2: sentinel.Handshake
 	(*MetricData)(nil),            // 3: sentinel.MetricData
 	(*Command)(nil),               // 4: sentinel.Command
-	(*KillProcessRequest)(nil),    // 5: sentinel.KillProcessRequest
-	(*ListProcessesRequest)(nil),  // 6: sentinel.ListProcessesRequest
-	(*FetchLogsRequest)(nil),      // 7: sentinel.FetchLogsRequest
-	(*ListContainersRequest)(nil), // 8: sentinel.ListContainersRequest
-	(*ListServicesRequest)(nil),   // 9: sentinel.ListServicesRequest
-	(*ServiceActionRequest)(nil),  // 10: sentinel.ServiceActionRequest
-	(*DockerActionRequest)(nil),   // 11: sentinel.DockerActionRequest
-	(*CommandResponse)(nil),       // 12: sentinel.CommandResponse
-	(*ProcessList)(nil),           // 13: sentinel.ProcessList
-	(*ProcessInfo)(nil),           // 14: sentinel.ProcessInfo
-	(*ContainerList)(nil),         // 15: sentinel.ContainerList
-	(*ContainerInfo)(nil),         // 16: sentinel.ContainerInfo
-	(*ServiceList)(nil),           // 17: sentinel.ServiceList
-	(*ServiceInfo)(nil),           // 18: sentinel.ServiceInfo
+	(*UpdateAgentRequest)(nil),    // 5: sentinel.UpdateAgentRequest
+	(*KillProcessRequest)(nil),    // 6: sentinel.KillProcessRequest
+	(*ListProcessesRequest)(nil),  // 7: sentinel.ListProcessesRequest
+	(*FetchLogsRequest)(nil),      // 8: sentinel.FetchLogsRequest
+	(*ListContainersRequest)(nil), // 9: sentinel.ListContainersRequest
+	(*ListServicesRequest)(nil),   // 10: sentinel.ListServicesRequest
+	(*ServiceActionRequest)(nil),  // 11: sentinel.ServiceActionRequest
+	(*DockerActionRequest)(nil),   // 12: sentinel.DockerActionRequest
+	(*CommandResponse)(nil),       // 13: sentinel.CommandResponse
+	(*ProcessList)(nil),           // 14: sentinel.ProcessList
+	(*ProcessInfo)(nil),           // 15: sentinel.ProcessInfo
+	(*ContainerList)(nil),         // 16: sentinel.ContainerList
+	(*ContainerInfo)(nil),         // 17: sentinel.ContainerInfo
+	(*ServiceList)(nil),           // 18: sentinel.ServiceList
+	(*ServiceInfo)(nil),           // 19: sentinel.ServiceInfo
 }
 var file_proto_service_proto_depIdxs = []int32{
 	2,  // 0: sentinel.Telemetry.handshake:type_name -> sentinel.Handshake
 	3,  // 1: sentinel.Telemetry.metrics:type_name -> sentinel.MetricData
-	12, // 2: sentinel.Telemetry.response:type_name -> sentinel.CommandResponse
+	13, // 2: sentinel.Telemetry.response:type_name -> sentinel.CommandResponse
 	0,  // 3: sentinel.Command.type:type_name -> sentinel.Command.Type
-	5,  // 4: sentinel.Command.kill_process:type_name -> sentinel.KillProcessRequest
-	6,  // 5: sentinel.Command.list_processes:type_name -> sentinel.ListProcessesRequest
-	7,  // 6: sentinel.Command.fetch_logs:type_name -> sentinel.FetchLogsRequest
-	8,  // 7: sentinel.Command.list_containers:type_name -> sentinel.ListContainersRequest
-	11, // 8: sentinel.Command.docker_action:type_name -> sentinel.DockerActionRequest
-	9,  // 9: sentinel.Command.list_services:type_name -> sentinel.ListServicesRequest
-	10, // 10: sentinel.Command.service_action:type_name -> sentinel.ServiceActionRequest
-	13, // 11: sentinel.CommandResponse.process_list:type_name -> sentinel.ProcessList
-	15, // 12: sentinel.CommandResponse.container_list:type_name -> sentinel.ContainerList
-	17, // 13: sentinel.CommandResponse.service_list:type_name -> sentinel.ServiceList
-	14, // 14: sentinel.ProcessList.processes:type_name -> sentinel.ProcessInfo
-	16, // 15: sentinel.ContainerList.containers:type_name -> sentinel.ContainerInfo
-	18, // 16: sentinel.ServiceList.services:type_name -> sentinel.ServiceInfo
-	1,  // 17: sentinel.SystemMonitor.StreamTelemetry:input_type -> sentinel.Telemetry
-	4,  // 18: sentinel.SystemMonitor.StreamTelemetry:output_type -> sentinel.Command
-	18, // [18:19] is the sub-list for method output_type
-	17, // [17:18] is the sub-list for method input_type
-	17, // [17:17] is the sub-list for extension type_name
-	17, // [17:17] is the sub-list for extension extendee
-	0,  // [0:17] is the sub-list for field type_name
+	6,  // 4: sentinel.Command.kill_process:type_name -> sentinel.KillProcessRequest
+	7,  // 5: sentinel.Command.list_processes:type_name -> sentinel.ListProcessesRequest
+	8,  // 6: sentinel.Command.fetch_logs:type_name -> sentinel.FetchLogsRequest
+	9,  // 7: sentinel.Command.list_containers:type_name -> sentinel.ListContainersRequest
+	12, // 8: sentinel.Command.docker_action:type_name -> sentinel.DockerActionRequest
+	10, // 9: sentinel.Command.list_services:type_name -> sentinel.ListServicesRequest
+	11, // 10: sentinel.Command.service_action:type_name -> sentinel.ServiceActionRequest
+	5,  // 11: sentinel.Command.update_agent:type_name -> sentinel.UpdateAgentRequest
+	14, // 12: sentinel.CommandResponse.process_list:type_name -> sentinel.ProcessList
+	16, // 13: sentinel.CommandResponse.container_list:type_name -> sentinel.ContainerList
+	18, // 14: sentinel.CommandResponse.service_list:type_name -> sentinel.ServiceList
+	15, // 15: sentinel.ProcessList.processes:type_name -> sentinel.ProcessInfo
+	17, // 16: sentinel.ContainerList.containers:type_name -> sentinel.ContainerInfo
+	19, // 17: sentinel.ServiceList.services:type_name -> sentinel.ServiceInfo
+	1,  // 18: sentinel.SystemMonitor.StreamTelemetry:input_type -> sentinel.Telemetry
+	4,  // 19: sentinel.SystemMonitor.StreamTelemetry:output_type -> sentinel.Command
+	19, // [19:20] is the sub-list for method output_type
+	18, // [18:19] is the sub-list for method input_type
+	18, // [18:18] is the sub-list for extension type_name
+	18, // [18:18] is the sub-list for extension extendee
+	0,  // [0:18] is the sub-list for field type_name
 }
 
 func init() { file_proto_service_proto_init() }
@@ -1701,8 +1767,9 @@ func file_proto_service_proto_init() {
 		(*Command_DockerAction)(nil),
 		(*Command_ListServices)(nil),
 		(*Command_ServiceAction)(nil),
+		(*Command_UpdateAgent)(nil),
 	}
-	file_proto_service_proto_msgTypes[11].OneofWrappers = []any{
+	file_proto_service_proto_msgTypes[12].OneofWrappers = []any{
 		(*CommandResponse_ProcessList)(nil),
 		(*CommandResponse_LogData)(nil),
 		(*CommandResponse_ContainerList)(nil),
@@ -1714,7 +1781,7 @@ func file_proto_service_proto_init() {
 			GoPackagePath: reflect.TypeOf(x{}).PkgPath(),
 			RawDescriptor: unsafe.Slice(unsafe.StringData(file_proto_service_proto_rawDesc), len(file_proto_service_proto_rawDesc)),
 			NumEnums:      1,
-			NumMessages:   18,
+			NumMessages:   19,
 			NumExtensions: 0,
 			NumServices:   1,
 		},

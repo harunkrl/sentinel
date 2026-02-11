@@ -66,11 +66,27 @@ fi
 echo "✅ System: $OS / $ARCH"
 
 # 3. Download
+# 3. Download
 DOWNLOAD_URL="http://$SERVER_IP:$WEB_PORT/downloads/$REMOTE_BINARY"
+CA_URL="http://$SERVER_IP:$WEB_PORT/downloads/ca-cert.pem"
+
 if [ "$WEB_PORT" == "80" ]; then
     DOWNLOAD_URL="http://$SERVER_IP/downloads/$REMOTE_BINARY"
+    CA_URL="http://$SERVER_IP/downloads/ca-cert.pem"
 fi
 TEMP_FILE="/tmp/$BINARY_NAME-update"
+CA_FILE="/etc/sentinel/ca-cert.pem"
+
+# Ensure config dir exists
+mkdir -p /etc/sentinel
+
+echo "⬇️  Downloading CA Certificate from $CA_URL..."
+curl -s -L -o $CA_FILE $CA_URL
+if [ $? -ne 0 ]; then
+    echo "⚠️  Warning: Failed to download CA Cert. Agent might not trust the server."
+else
+    echo "✅ CA Certificate downloaded to $CA_FILE"
+fi
 
 echo "⬇️  Downloading Agent from $DOWNLOAD_URL..."
 curl --progress-bar -f -L -o $TEMP_FILE $DOWNLOAD_URL
@@ -107,7 +123,9 @@ User=root
 ExecStart=$INSTALL_DIR/$BINARY_NAME
 Restart=always
 Environment="CORE_ADDRESS=$SERVER_IP:$SERVER_PORT"
-Environment="SENTINEL_INSECURE_TLS=true"
+# Professional Mode: Use CA File for verification
+# Environment="SENTINEL_SKIP_TLS_VERIFY=true"
+Environment="SENTINEL_CA_FILE=/etc/sentinel/ca-cert.pem"
 # Agent hostname override (Optional)
 # Environment="AGENT_HOSTNAME=$(hostname)"
 

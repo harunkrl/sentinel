@@ -78,21 +78,18 @@ export default function Home() {
             wrapperClassName: "flex gap-2 mb-4 text-gray-300"
         },
         { text: "🚀 Sentinel Server Setup", className: "text-blue-400 font-bold" },
-        { text: "Mode: prod | Version: v1.1.0", className: "text-gray-500" },
+        { text: "Mode: prod | Version: v1.2.0 (TLS Enabled)", className: "text-gray-500" },
         { text: "------------------------------------------------", className: "text-gray-500" },
         { text: "⚙  Generating gRPC Code...", className: "text-yellow-400" },
         { text: "   ✅ Proto files generated successfully.", className: "text-green-400" },
-        { text: "🔨 Compiling Agents for Multi-Architecture...", className: "text-blue-300" },
-        { text: "   - Building Linux AMD64...", className: "text-gray-400" },
-        { text: "   - Building Linux ARM64...", className: "text-gray-400" },
-        { text: "   - Building Windows AMD64...", className: "text-gray-400" },
-        { text: "⚠️  No .env file found. Creating from .env.production.example...", className: "text-yellow-400 text-xs" },
+        { text: "🔐 Generating Professional TLS Certificates...", className: "text-blue-300" },
+        { text: "   - CA Root Certificate... [OK]", className: "text-green-400" },
+        { text: "   - Server Certificate... [OK]", className: "text-green-400" },
         { text: "📦 Starting Backend Services (prod mode)...", className: "text-purple-400" },
-        { text: " => [core] No TLS certs found, falling back to INSECURE mode ⚠️", className: "text-yellow-400 text-xs" },
         { text: " ✔ Image sentinel-core Built", className: "text-green-400" },
         { text: " ✔ Image sentinel-web  Built", className: "text-green-400" },
-        { text: "🎉 System Ready! (prod mode)", className: "text-yellow-400 font-bold mt-2" },
-        { text: "Dashboard: http://192.168.1.100", className: "text-blue-400 underline" }
+        { text: "🎉 System Ready! (Secure Mode 🔒)", className: "text-green-400 font-bold mt-2" },
+        { text: "Dashboard: https://sentinel.local", className: "text-blue-400 underline" }
     ];
 
     const features = [

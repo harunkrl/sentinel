@@ -1,6 +1,7 @@
 package server
 
 import (
+	"fmt"
 	"io"
 	"net/http"
 	"os"
@@ -203,6 +204,11 @@ func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 	cmd := &proto.Command{
 		Id:   cmdID,
 		Type: proto.Command_UPDATE_AGENT,
+		Payload: &proto.Command_UpdateAgent{
+			UpdateAgent: &proto.UpdateAgentRequest{
+				DownloadUrl: fmt.Sprintf("http://%s/downloads/install.sh", c.Request.Host),
+			},
+		},
 	}
 
 	if err := s.core.SendCommand(agentID, cmd); err != nil {

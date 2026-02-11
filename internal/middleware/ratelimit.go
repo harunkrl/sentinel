@@ -11,10 +11,10 @@ import (
 
 // IPRateLimiter manages limiters for each IP address
 type IPRateLimiter struct {
-	ips    map[string]*rate.Limiter
-	mu     sync.RWMutex
-	r      rate.Limit // events per second
-	b      int        // burst size
+	ips map[string]*rate.Limiter
+	mu  sync.RWMutex
+	r   rate.Limit // events per second
+	b   int        // burst size
 }
 
 // NewIPRateLimiter creates a custom rate limiter based on events/time and burst
@@ -24,16 +24,16 @@ type IPRateLimiter struct {
 func NewIPRateLimiter(limit int, window time.Duration) *IPRateLimiter {
 	// Convert limit/window to rate.Limit (events per second)
 	r := rate.Limit(float64(limit) / window.Seconds())
-	
+
 	i := &IPRateLimiter{
 		ips: make(map[string]*rate.Limiter),
 		r:   r,
 		b:   limit,
 	}
-	
+
 	// Cleanup routine to prevent memory leak from stale IPs
 	go i.cleanup()
-	
+
 	return i
 }
 
@@ -79,7 +79,7 @@ func RateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
 		l := limiter.GetLimiter(ip)
-		
+
 		if !l.Allow() {
 			c.JSON(http.StatusTooManyRequests, gin.H{
 				"error": "Rate limit exceeded. Please try again later.",
@@ -95,6 +95,6 @@ func RateLimitMiddleware(limiter *IPRateLimiter) gin.HandlerFunc {
 var (
 	// LoginLimiter: 5 requests per minute
 	LoginLimiter = NewIPRateLimiter(5, time.Minute)
-	// APILimiter: 100 requests per minute
-	APILimiter = NewIPRateLimiter(100, time.Minute)
+	// APILimiter: 600 requests per minute (10/sec) to handle dashboard polling
+	APILimiter = NewIPRateLimiter(600, time.Minute)
 )

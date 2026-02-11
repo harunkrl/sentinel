@@ -62,6 +62,27 @@ else
     exit 1
 fi
 
+# --- 0.5 CERT GENERATION ---
+if [ ! -f "./certs/server-cert.pem" ]; then
+    echo -e "${YELLOW}⚠️  No TLS certificates found. Generating them...${NC}"
+    mkdir -p certs
+    chmod +x scripts/gen_certs.sh
+    # Use detected IP or localhost
+    DETECTED_IP=$(ip route get 1.1.1.1 2>/dev/null | awk '{print $7}')
+    if [ -z "$DETECTED_IP" ]; then
+        DETECTED_IP=$(hostname -I 2>/dev/null | awk '{print $1}')
+    fi
+    [ -z "$DETECTED_IP" ] && DETECTED_IP="127.0.0.1"
+    
+    ./scripts/gen_certs.sh $DETECTED_IP
+else
+    echo -e "${GREEN}✅ TLS Certificates found.${NC}"
+fi
+
+# COPY CA CERT TO DOWNLOADS (IMPORTANT)
+cp certs/ca-cert.pem $DOWNLOAD_DIR/ca-cert.pem
+
+
 # --- 1. COMPILE AGENTS ---
 if [ "$SKIP_COMPILE" = false ]; then
     echo -e "${GREEN}🔨 Compiling Agents for Multi-Architecture...${NC}"
@@ -127,5 +148,5 @@ else
     echo "InfluxDB:  http://$SERVER_IP:8086"
     echo "------------------------------------------------"
     echo "To install agent on other devices:"
-    echo -e "${GREEN}curl -sL http://$SERVER_IP:3000/downloads/install.sh | sudo bash -s $SERVER_IP${NC}"
+    echo -e "${GREEN}curl -sL http://$SERVER_IP:3000/downloads/install.sh | sudo bash -s $SERVER_IP 3000${NC}"
 fi

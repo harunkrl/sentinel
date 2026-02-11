@@ -26,14 +26,14 @@ Sentinel is a platform designed to monitor and manage distributed systems. It co
 ┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
 │   Web Frontend  │────▶│   Core Server   │◀────│     Agents      │
 │    (React)      │REST │      (Go)       │gRPC │      (Go)       │
-└─────────────────┘     └─────────────────┘     └─────────────────┘
-                               │
-                    ┌──────────┼──────────┐
-                    ▼          ▼          ▼
-              ┌─────────┐ ┌─────────┐ ┌─────────┐
-              │InfluxDB │ │ SQLite  │ │  Ntfy   │
-              │(Metrics)│ │(Config) │ │(Alerts) │
-              └─────────┘ └─────────┘ └─────────┘
+└─────────────────┘     └────────┬────────┘     └─────────────────┘
+                                 │
+                    ┌────────────┼────────────┐
+                    ▼            ▼            ▼
+              ┌─────────┐   ┌─────────┐   ┌─────────┐
+              │InfluxDB │   │ SQLite  │   │TLS Certs│
+              │(Metrics)│   │(Config) │   │ (Vol)   │
+              └─────────┘   └─────────┘   └─────────┘
 ```
 
 ### Why These Technologies?
@@ -520,7 +520,28 @@ if insecureTLS {
 
 > Both sides must be in the same mode. If the Core runs in plaintext (no certs), the Agent must set `SENTINEL_INSECURE_TLS=true`.
 
-### 7.2 JWT Authentication
+### 7.2 Trust on First Use (TOFU) Flow
+
+When a new agent is installed, it follows a "Trust on First Use" model to securely bootstrap the connection:
+
+```mermaid
+sequenceDiagram
+    participant Admin
+    participant Agent
+    participant Core as Core Server
+    
+    Note over Core: 1. Generates CA & Server Certs
+    Admin->>Agent: Run Install Script
+    Agent->>Core: HTTP GET /downloads/install.sh
+    Core-->>Agent: Returns Script
+    Agent->>Core: HTTP GET /downloads/ca-cert.pem
+    Core-->>Agent: Returns CA Cert
+    Note over Agent: 2. Saves CA to /etc/sentinel/
+    Agent->>Core: gRPC Handshake (TLS + CA Verify)
+    Core-->>Agent: Secure Connection Established ✅
+```
+
+### 7.3 JWT Authentication
 
 ```go
 func GenerateToken(username, role string) (string, error) {

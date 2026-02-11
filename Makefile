@@ -56,7 +56,7 @@ update:
 	@bash ./scripts/update.sh
 
 generate-certs:
-	@bash ./scripts/generate-certs.sh
+	@bash ./scripts/gen_certs.sh
 
 # === Development ===
 test:
@@ -93,7 +93,7 @@ help:
 	@echo "    make backup           Backup data"
 	@echo "    make reset            Clean reset (wipe data)"
 	@echo "    make update           Pull latest + rebuild"
-	@echo "    make generate-certs   Generate TLS certificates"
+	@echo "    make gen-certs        Generate TLS certificates"
 	@echo ""
 	@echo "  Development:"
 	@echo "    make test             Run tests and vet"
@@ -101,5 +101,5 @@ help:
 	@echo ""
 
 .PHONY: build build-core build-agent build-agent-arm build-agent-windows build-all \
-        dev prod stop status logs doctor backup reset update generate-certs \
+        dev prod stop status logs doctor backup reset update gen-certs \
         test clean help

@@ -1166,7 +1166,7 @@ make prod`} />
                                 </ol>
 
                                 <InfoBox type="tip" title="Multi-Agent Update">
-                                    You can update multiple agents at once by clicking the update button on each agent card.
+                                    You can update multiple agents at once by clicking the update all button on the dashboard.
                                 </InfoBox>
                             </section>
 

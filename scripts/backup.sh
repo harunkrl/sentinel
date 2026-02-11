@@ -23,6 +23,12 @@ mkdir -p "$BACKUP_PATH"
 if [ -f .env ]; then
     echo "📋 Backing up .env configuration..."
     cp .env "$BACKUP_PATH/env.backup"
+    
+    # Load environment variables for InfluxDB backup
+    # export vars so they are available to child processes/current shell context if needed
+    set -a
+    source .env
+    set +a
 fi
 
 # 2. Backup SQLite database from Docker volume

@@ -110,10 +110,15 @@ cd sentinel
 
 # Start Development environment
 # (.env is auto-created from .env.example if missing)
+# This will also:
+# 1. Generate TLS certificates for your IP
+# 2. Compile all binaries
+# 3. Start InfluxDB, Core, and Web Dashboard
 ./compile_and_run.sh --dev
 
 # Get initial admin password
-docker logs sentinel_core | grep -A3 "INITIAL ADMIN"
+# The password is now saved to a file for persistence
+cat data/initial_admin_password.txt
 ```
 
 > **Note:** If no `.env` file exists, the startup script automatically creates one from `.env.example` (dev) or `.env.production.example` (prod).
@@ -144,7 +149,8 @@ curl -sL http://<SERVER_IP>/downloads/install.sh | sudo bash -s <SERVER_IP>
 
 #### Linux (Development - Port 3000)
 ```bash
-curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP>
+# This automatically downloads the CA certificate and installs the agent
+curl -sL http://<SERVER_IP>:3000/downloads/install.sh | sudo bash -s <SERVER_IP> 3000
 ```
 
 #### Windows (PowerShell - Admin)
@@ -154,6 +160,19 @@ Invoke-WebRequest -Uri "http://<SERVER_IP>/downloads/install.ps1" -OutFile "inst
 ```
 
 > **Tip:** When running without TLS certificates, set `SENTINEL_INSECURE_TLS=true` in the agent's systemd service file to enable plaintext gRPC communication.
+
+### 4. Verification
+
+After installation, verify the agent connection:
+```bash
+journalctl -u sentinel-agent -f
+```
+You should see:
+```text
+🔒 Secure Mode: Using Custom CA from /etc/sentinel/ca-cert.pem
+🚀 Starting Sentinel Agent...
+✅ Connected to Core
+```
 
 ---
 

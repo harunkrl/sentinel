@@ -150,9 +150,11 @@ export default function AgentDetail() {
 
     useEffect(() => {
         fetchAgent();
-        const interval = setInterval(fetchAgent, 5000);
+        const interval = setInterval(() => {
+            if (!isUpdating) fetchAgent();
+        }, 5000);
         return () => clearInterval(interval);
-    }, [id]);
+    }, [id, isUpdating]);
 
     // Tab changes
     useEffect(() => {
@@ -237,7 +239,7 @@ export default function AgentDetail() {
                     setTimeout(() => setToast({ show: false, message: '', type: 'success' }), 4000);
 
                     let attempts = 0;
-                    const maxAttempts = 100;
+                    const maxAttempts = 300;
                     let hasGoneOffline = false;
 
                     const pollInterval = setInterval(async () => {
@@ -246,13 +248,18 @@ export default function AgentDetail() {
                             const res = await axios.get(`${API_BASE}/agents`);
                             const found = res.data.find(a => a.hostname === agent.hostname);
 
+                            // 1. Update UI state immediately
+                            if (found) setAgent(found);
+
+                            // 2. State Machine Logic
                             if (!hasGoneOffline) {
+                                // Phase 1: Wait for Agent to go Offline
                                 if (!found || found.status !== 'online') {
                                     hasGoneOffline = true;
-                                    setToast({ show: true, message: 'Agent restarting...', type: 'success' });
+                                    setToast({ show: true, message: 'Agent performing update...', type: 'success' });
                                 }
-                            }
-                            else {
+                            } else {
+                                // Phase 2: Wait for Agent to come back Online
                                 if (found && found.status === 'online') {
                                     clearInterval(pollInterval);
                                     setIsUpdating(false);
@@ -269,13 +276,13 @@ export default function AgentDetail() {
                             clearInterval(pollInterval);
                             setIsUpdating(false);
                             const msg = hasGoneOffline
-                                ? 'Update timeout - agent did not recover in time'
-                                : 'Update timeout - agent did not restart';
+                                ? 'Update timeout - agent did not recover'
+                                : 'Update timeout - agent did not restart (check logs)';
 
                             setToast({ show: true, message: msg, type: 'error' });
                             setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 5000);
                         }
-                    }, 3000);
+                    }, 1000);
                 } catch (err) {
                     setToast({ show: true, message: 'Failed to send update command: ' + err.message, type: 'error' });
                     setTimeout(() => setToast({ show: false, message: '', type: 'error' }), 5000);

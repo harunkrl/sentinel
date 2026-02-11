@@ -54,6 +54,14 @@ func main() {
 		if err := core.CreateUser("admin", randomPassword, "admin"); err != nil {
 			log.Printf("Failed to create admin user: %v", err)
 		} else {
+			// Save to file
+			pwFile := dataDir + "/initial_admin_password.txt"
+			if err := os.WriteFile(pwFile, []byte(randomPassword), 0600); err != nil {
+				log.Printf("Warning: Failed to write password file: %v", err)
+			} else {
+				fmt.Printf("\n✅ Initial admin password saved to: %s\n", pwFile)
+			}
+
 			// Print to stdout only (avoid logging systems if possible)
 			fmt.Println("\n==============================================")
 			fmt.Println("  INITIAL ADMIN CREDENTIALS")

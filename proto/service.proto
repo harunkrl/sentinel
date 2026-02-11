@@ -85,7 +85,12 @@ message Command {
     
     ListServicesRequest list_services = 8;     // --- NEW ---
     ServiceActionRequest service_action = 9;   // --- NEW ---
+    UpdateAgentRequest update_agent = 10;      // --- NEW ---
   }
+}
+
+message UpdateAgentRequest {
+  string download_url = 1;
 }
 
 message KillProcessRequest { int32 pid = 1; }

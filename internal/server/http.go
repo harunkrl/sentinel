@@ -1,12 +1,12 @@
 package server
 
 import (
+	"io"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"time"
-	"io"
 
 	"sentinel/internal/config" // Config package
 	"sentinel/proto"
@@ -43,8 +43,9 @@ func NewHttpServer(core *CoreServer) *HttpServer {
 			}
 		}
 
-		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE")
-		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type")
+		c.Writer.Header().Set("Access-Control-Allow-Methods", "POST, GET, OPTIONS, DELETE, PUT")
+		c.Writer.Header().Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		c.Writer.Header().Set("Access-Control-Allow-Credentials", "true")
 
 		if c.Request.Method == "OPTIONS" {
 			c.AbortWithStatus(204)
@@ -59,19 +60,26 @@ func NewHttpServer(core *CoreServer) *HttpServer {
 	}
 
 	api := r.Group("/api")
-	
+
 	// Serve static downloads (scripts, binaries)
 	r.Static("/downloads", "./deploy/downloads")
 
+	// Health Check — unauthenticated, for Docker/LB probes
+	api.GET("/health", func(c *gin.Context) {
+		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+	})
+
 	// Public Routes (with login rate limiting)
 	api.POST("/auth/login", middleware.RateLimitMiddleware(middleware.LoginLimiter), s.handleLogin)
-	api.GET("/auth/check", s.handleAuthCheck)
 	api.POST("/auth/change-password", middleware.AuthMiddleware(), s.handleChangePassword)
 
 	// Protected Routes (with general API rate limiting)
 	api.Use(middleware.AuthMiddleware())
 	api.Use(middleware.RateLimitMiddleware(middleware.APILimiter))
 	{
+		// Token validation
+		api.GET("/auth/check", s.handleAuthCheck)
+
 		// Agent Management
 		api.GET("/agents", s.handleGetAgents)
 		api.POST("/agent/:id/kill", s.handleKillProcess)
@@ -95,7 +103,7 @@ func NewHttpServer(core *CoreServer) *HttpServer {
 		api.GET("/agent/:id/services", s.handleListServices)
 		api.POST("/agent/:id/service/action", s.handleServiceAction)
 
-		// --- NEW ENDPOINTS ---
+		// Agent Updates & Utilities
 
 		// Update Endpoint
 		api.POST("/agent/:id/update", s.handleUpdateAgent)
@@ -120,6 +128,11 @@ func NewHttpServer(core *CoreServer) *HttpServer {
 
 func (s *HttpServer) Run(addr string) error {
 	return s.engine.Run(addr)
+}
+
+// Handler returns the HTTP handler for use with http.Server (enables graceful shutdown)
+func (s *HttpServer) Handler() http.Handler {
+	return s.engine
 }
 
 // Handler functions for agent management, logs, processes, containers, and docker actions
@@ -181,10 +194,7 @@ func (s *HttpServer) handleGetAgents(c *gin.Context) {
 	c.JSON(http.StatusOK, res)
 }
 
-// ... Diğer mevcut fonksiyonlar (handleSystemAction vb.) buraya gelecek ...
-// Sadece yeni eklenenleri aşağıya yazıyorum:
-
-// --- YENİ EKLENEN HANDLERLAR ---
+// Additional handler functions below
 
 func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 	agentID := c.Param("id")
@@ -210,23 +220,23 @@ func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 
 func (s *HttpServer) handleGetStats(c *gin.Context) {
 	agentID := c.Param("id")
-	
+
 	// Default to 1h if not specified
 	duration := c.DefaultQuery("range", "1h")
-	
+
 	// Validate duration
 	validRanges := map[string]bool{"1m": true, "1h": true, "6h": true, "12h": true, "24h": true, "7d": true, "30d": true}
 	if !validRanges[duration] {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid range. Use: 1h, 6h, 24h, 7d, 30d"})
 		return
 	}
-	
+
 	stats, err := s.core.GetAgentStats(agentID, duration)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-	
+
 	c.JSON(http.StatusOK, stats)
 }
 
@@ -333,14 +343,11 @@ func (s *HttpServer) handleGetLogs(c *gin.Context) {
 		return
 	}
 
-	for i := 0; i < 50; i++ {
-		time.Sleep(100 * time.Millisecond)
-		result := s.core.GetCommandResult(cmdID)
-		if result != nil {
-			logText := result.GetLogData()
-			c.JSON(http.StatusOK, gin.H{"status": "success", "logs": logText})
-			return
-		}
+	result := s.core.WaitForResult(cmdID, 5*time.Second)
+	if result != nil {
+		logText := result.GetLogData()
+		c.JSON(http.StatusOK, gin.H{"status": "success", "logs": logText})
+		return
 	}
 	c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Timeout waiting for logs"})
 }
@@ -441,18 +448,15 @@ func (s *HttpServer) handleListContainers(c *gin.Context) {
 		return
 	}
 
-	for i := 0; i < 50; i++ {
-		time.Sleep(100 * time.Millisecond)
-		result := s.core.GetCommandResult(cmdID)
-		if result != nil {
-			if result.Success {
-				containers := result.GetContainerList().GetContainers()
-				c.JSON(http.StatusOK, containers)
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": result.Message})
-			}
-			return
+	result := s.core.WaitForResult(cmdID, 5*time.Second)
+	if result != nil {
+		if result.Success {
+			containers := result.GetContainerList().GetContainers()
+			c.JSON(http.StatusOK, containers)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Message})
 		}
+		return
 	}
 	c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Timeout"})
 }
@@ -502,18 +506,15 @@ func (s *HttpServer) handleListServices(c *gin.Context) {
 		return
 	}
 
-	for i := 0; i < 50; i++ {
-		time.Sleep(100 * time.Millisecond)
-		result := s.core.GetCommandResult(cmdID)
-		if result != nil {
-			if result.Success {
-				services := result.GetServiceList().GetServices()
-				c.JSON(http.StatusOK, services)
-			} else {
-				c.JSON(http.StatusInternalServerError, gin.H{"error": result.Message})
-			}
-			return
+	result := s.core.WaitForResult(cmdID, 5*time.Second)
+	if result != nil {
+		if result.Success {
+			services := result.GetServiceList().GetServices()
+			c.JSON(http.StatusOK, services)
+		} else {
+			c.JSON(http.StatusInternalServerError, gin.H{"error": result.Message})
 		}
+		return
 	}
 	c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Timeout"})
 }
@@ -580,7 +581,7 @@ func (s *HttpServer) handleLogin(c *gin.Context) {
 	role, err := s.core.VerifyUser(creds.Username, creds.Password)
 	if err != nil {
 		// Initial Bootstrap: If admin/admin check comes and DB is empty/no admin, create it?
-		// For detailed Phase 4: We'll assume manual creation or script. 
+		// For detailed Phase 4: We'll assume manual creation or script.
 		// But let's add a "First Run" check here or in VerifyUser.
 		// For now, strict check.
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid username or password"})
@@ -597,10 +598,7 @@ func (s *HttpServer) handleLogin(c *gin.Context) {
 }
 
 func (s *HttpServer) handleAuthCheck(c *gin.Context) {
-	// Simple endpoint to check if API is reachable. 
-	// Actual validation happens via middleware on protected routes.
-	// But since this is public, it just says "Hello".
-	// The frontend should try a protected route (e.g. /api/agents) to validate token.
+	// Validates token — runs behind AuthMiddleware, so reaching here means token is valid.
 	c.JSON(http.StatusOK, gin.H{"status": "ok"})
 }
 

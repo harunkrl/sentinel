@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"os"
 	"strings"
 	"sync"
 	"time"
@@ -91,7 +92,7 @@ func (a *AlertManager) CheckMetrics(agentID string, m *proto.MetricData, setting
 		a.sendWithDebounce(agentID+"_disk", msg, "rotating_light", targetTopic)
 	}
 
-	// --- NEW: CPU TEMPERATURE ---
+	// CPU Temperature threshold check
 	// Check if temperature data exists (greater than 0)
 	if m.TemperatureC > 0 && m.TemperatureC > settings.CpuTempThreshold {
 		msg := fmt.Sprintf("🌡️ TEMP HIGH: %s is at %.1f°C (Limit: %.0f°C)", agentID, m.TemperatureC, settings.CpuTempThreshold)
@@ -105,7 +106,13 @@ func (a *AlertManager) sendWithDebounce(key string, msg string, tag string, topi
 
 	last, exists := a.lastAlerts[key]
 	// Repeat same alarm every 5 minutes (Spam prevention)
-	if !exists || time.Since(last) > 5*time.Minute {
+	debounceMinutes := 5
+	if envVal := os.Getenv("ALERT_DEBOUNCE_MINUTES"); envVal != "" {
+		if n, err := fmt.Sscanf(envVal, "%d", &debounceMinutes); n == 1 && err == nil {
+			// Use parsed value
+		}
+	}
+	if !exists || time.Since(last) > time.Duration(debounceMinutes)*time.Minute {
 		log.Printf("🚨 Sending Alert to %s: %s", topic, msg)
 		a.SendMessageToTopic(msg, tag, topic)
 		a.lastAlerts[key] = time.Now()

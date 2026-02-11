@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"regexp"
 	"time"
 
 	"sentinel/proto"
@@ -11,6 +12,27 @@ import (
 	influxdb2 "github.com/influxdata/influxdb-client-go/v2"
 	"github.com/influxdata/influxdb-client-go/v2/api"
 )
+
+// validID matches safe identifiers: alphanumeric, dash, underscore, dot
+var validID = regexp.MustCompile(`^[a-zA-Z0-9._-]+$`)
+
+// validDurations is the whitelist of acceptable Flux duration strings
+var validDurations = map[string]bool{
+	"1m": true, "5m": true, "15m": true, "30m": true,
+	"1h": true, "6h": true, "12h": true, "24h": true,
+	"7d": true, "30d": true,
+}
+
+// sanitizeQueryParams validates agentID and duration to prevent Flux injection
+func sanitizeQueryParams(agentID, duration string) error {
+	if !validID.MatchString(agentID) {
+		return fmt.Errorf("invalid agent ID: contains disallowed characters")
+	}
+	if !validDurations[duration] {
+		return fmt.Errorf("invalid duration: %s", duration)
+	}
+	return nil
+}
 
 type InfluxStore struct {
 	client   influxdb2.Client
@@ -59,6 +81,10 @@ func (s *InfluxStore) Close() {
 }
 
 func (s *InfluxStore) GetMetricsHistory(agentID string, duration string) ([]map[string]interface{}, error) {
+	if err := sanitizeQueryParams(agentID, duration); err != nil {
+		return nil, err
+	}
+
 	queryAPI := s.client.QueryAPI(os.Getenv("INFLUXDB_ORG"))
 	bucket := os.Getenv("INFLUXDB_BUCKET")
 
@@ -135,6 +161,10 @@ type AgentStats struct {
 }
 
 func (s *InfluxStore) GetMetricsStats(agentID string, duration string) (*AgentStats, error) {
+	if err := sanitizeQueryParams(agentID, duration); err != nil {
+		return nil, err
+	}
+
 	queryAPI := s.client.QueryAPI(os.Getenv("INFLUXDB_ORG"))
 	bucket := os.Getenv("INFLUXDB_BUCKET")
 

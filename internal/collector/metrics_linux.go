@@ -22,7 +22,7 @@ func (c *Collector) getLoadAvg() (float64, float64, float64) {
 func (c *Collector) readThermal() float64 {
 	temps, err := host.SensorsTemperatures()
 
-	// Hata olsa bile (Warning gibi), veri varsa devam et
+	// Even if there's an error (e.g. Warning), continue if data is available
 	if len(temps) > 0 {
 		var bestCandidate float64 = 0
 		var bestScore int = 0
@@ -31,14 +31,14 @@ func (c *Collector) readThermal() float64 {
 			key := strings.ToLower(t.SensorKey)
 			val := t.Temperature
 
-			// Filtreleme: 0 derece, sanal, wifi, nvme ve composite ele
+			// Filter out: zero readings, virtual, wifi, nvme and composite sensors
 			if val <= 0 || strings.Contains(key, "virtual") || strings.Contains(key, "wifi") || strings.Contains(key, "nvme") || strings.Contains(key, "composite") {
 				continue
 			}
 
 			currentScore := 0
 
-			// Puanlama Mantığı
+			// Scoring logic — prefer package/tctl > core > cpu > thinkpad > other
 			if strings.Contains(key, "package") || strings.Contains(key, "tctl") {
 				currentScore = 100
 			} else if strings.Contains(key, "core") {
@@ -66,7 +66,7 @@ func (c *Collector) readThermal() float64 {
 		}
 	}
 
-	// Fallback: Raspberry Pi vb.
+	// Fallback: Raspberry Pi and similar SBCs
 	data, err := os.ReadFile("/sys/class/thermal/thermal_zone0/temp")
 	if err == nil {
 		valStr := strings.TrimSpace(string(data))

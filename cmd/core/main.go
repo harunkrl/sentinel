@@ -1,12 +1,17 @@
 package main
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/hex"
 	"fmt"
 	"log"
 	"net"
+	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"sentinel/internal/server"
 	"sentinel/internal/store"
@@ -55,39 +60,52 @@ func main() {
 			fmt.Println("  Username: admin")
 			fmt.Printf("  Password: %s\n", randomPassword)
 			fmt.Println("  ⚠️  IMPORTANT: Change this password immediately!")
-			fmt.Println("==============================================\n")
+			fmt.Println("==============================================")
 		}
 	}
 
 	// 4. Start gRPC Server
+	grpcPort := os.Getenv("GRPC_PORT")
+	if grpcPort == "" {
+		grpcPort = "50051"
+	}
+
+	lis, err := net.Listen("tcp", ":"+grpcPort)
+	if err != nil {
+		log.Fatalf("failed to listen: %v", err)
+	}
+
+	// TLS Configuration
+	certFile := os.Getenv("TLS_CERT_FILE")
+	keyFile := os.Getenv("TLS_KEY_FILE")
+	if certFile == "" {
+		certFile = "certs/server-cert.pem"
+	}
+	if keyFile == "" {
+		keyFile = "certs/server-key.pem"
+	}
+
+	creds, err := credentials.NewServerTLSFromFile(certFile, keyFile)
+	if err != nil {
+		log.Printf("Warning: Failed to load TLS keys, falling back to INSECURE mode: %v", err)
+	}
+
+	var grpcServer *grpc.Server
+	if creds != nil {
+		grpcServer = grpc.NewServer(grpc.Creds(creds))
+		log.Println("gRPC Server running in SECURE (TLS) mode 🔒")
+	} else {
+		grpcServer = grpc.NewServer()
+		log.Println("gRPC Server running in INSECURE mode ⚠️")
+	}
+
+	core.RegisterGrpc(grpcServer)
+	reflection.Register(grpcServer)
+
 	go func() {
-		lis, err := net.Listen("tcp", ":50051")
-		if err != nil {
-			log.Fatalf("failed to listen: %v", err)
-		}
-
-		// TLS Configuration
-		creds, err := credentials.NewServerTLSFromFile("certs/server-cert.pem", "certs/server-key.pem")
-		if err != nil {
-			log.Printf("Warning: Failed to load TLS keys, falling back to INSECURE mode: %v", err)
-			log.Println("Ensure 'certs/server-cert.pem' and 'certs/server-key.pem' exist.")
-		}
-
-		var grpcServer *grpc.Server
-		if creds != nil {
-			grpcServer = grpc.NewServer(grpc.Creds(creds))
-			log.Println("gRPC Server running in SECURE (TLS) mode 🔒")
-		} else {
-			grpcServer = grpc.NewServer()
-			log.Println("gRPC Server running in INSECURE mode ⚠️")
-		}
-
-		core.RegisterGrpc(grpcServer)
-		reflection.Register(grpcServer)
-
-		log.Printf("gRPC server listening on :50051")
+		log.Printf("gRPC server listening on :%s", grpcPort)
 		if err := grpcServer.Serve(lis); err != nil {
-			log.Fatalf("failed to serve gRPC: %v", err)
+			log.Printf("gRPC server stopped: %v", err)
 		}
 	}()
 
@@ -98,10 +116,37 @@ func main() {
 		port = "8080"
 	}
 
-	log.Printf("HTTP API listening on :%s", port)
-	if err := httpServer.Run(":" + port); err != nil {
-		log.Fatalf("failed to serve HTTP: %v", err)
+	httpSrv := &http.Server{
+		Addr:    ":" + port,
+		Handler: httpServer.Handler(),
 	}
+
+	go func() {
+		log.Printf("HTTP API listening on :%s", port)
+		if err := httpSrv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			log.Printf("HTTP server stopped: %v", err)
+		}
+	}()
+
+	// 6. Graceful Shutdown — wait for SIGINT or SIGTERM
+	quit := make(chan os.Signal, 1)
+	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
+	sig := <-quit
+	log.Printf("Received signal %v, shutting down gracefully...", sig)
+
+	// Stop gRPC server (stops accepting new connections, waits for in-flight)
+	grpcServer.GracefulStop()
+	log.Println("gRPC server stopped")
+
+	// Shut down HTTP server with a 10-second timeout
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := httpSrv.Shutdown(ctx); err != nil {
+		log.Printf("HTTP server forced shutdown: %v", err)
+	}
+	log.Println("HTTP server stopped")
+
+	log.Println("Sentinel Core shut down cleanly.")
 }
 
 func generateRandomPassword() string {

@@ -12,8 +12,9 @@ import (
 	"sentinel/internal/store"
 	"sentinel/proto"
 
-	"google.golang.org/grpc"
 	"net"
+
+	"google.golang.org/grpc"
 
 	"golang.org/x/crypto/bcrypt"
 )
@@ -32,12 +33,12 @@ type CoreServer struct {
 	agents         map[string]*AgentSession
 	knownAgents    map[string]*proto.Handshake // Store metadata for offline agents
 	commandResults map[string]*commandResultEntry
+	pendingCmds    map[string]chan struct{} // Channels to notify when a command result arrives
 
-	influx         *store.InfluxStore
-	db             *store.Store
-	alertMgr       *alert.AlertManager
+	influx   *store.InfluxStore
+	db       *store.Store
+	alertMgr *alert.AlertManager
 
-	// NEW: Config Manager for settings
 	configMgr *config.Manager
 
 	// SSE Clients
@@ -58,6 +59,7 @@ func NewCoreServer(influx *store.InfluxStore, db *store.Store, dataDir string) *
 		agents:         make(map[string]*AgentSession),
 		knownAgents:    make(map[string]*proto.Handshake),
 		commandResults: make(map[string]*commandResultEntry),
+		pendingCmds:    make(map[string]chan struct{}),
 		influx:         influx,
 		db:             db,
 		alertMgr:       alert.NewAlertManager(),
@@ -94,11 +96,11 @@ func (s *CoreServer) StreamTelemetry(stream proto.SystemMonitor_StreamTelemetryS
 		if agentID != "" {
 			s.markOffline(agentID)
 			log.Printf("Agent disconnected: %s", agentID)
-			
+
 			// Get current settings for alert
 			currentSettings := s.configMgr.Get()
 			s.alertMgr.SendAgentOffline(agentID, currentSettings)
-			
+
 			s.BroadcastToSSE("update")
 		}
 	}()
@@ -117,7 +119,7 @@ func (s *CoreServer) StreamTelemetry(stream proto.SystemMonitor_StreamTelemetryS
 			agentID = msg.AgentId
 			s.registerAgent(agentID, stream, payload.Handshake)
 			log.Printf("Agent connected: %s (%s)", agentID, payload.Handshake.IpAddress)
-			
+
 			currentSettings := s.configMgr.Get()
 			s.alertMgr.SendAgentOnline(agentID, payload.Handshake.IpAddress, currentSettings)
 
@@ -130,19 +132,25 @@ func (s *CoreServer) StreamTelemetry(stream proto.SystemMonitor_StreamTelemetryS
 			}
 			s.updateAgentMetrics(agentID, payload.Metrics)
 
-			// NEW: Get current settings from Config Manager and send to Alert Manager
+			// Get current settings from Config Manager and send to Alert Manager
 			currentSettings := s.configMgr.Get()
 			s.alertMgr.CheckMetrics(agentID, payload.Metrics, currentSettings)
 
-			// SSE Broadcast
-			s.BroadcastToSSE("update")
+			// SSE Broadcast with enriched data
+			s.BroadcastToSSE(fmt.Sprintf(`{"type":"metrics","agent_id":"%s"}`, agentID))
 
 		case *proto.Telemetry_Response:
 			log.Printf("Action result from %s: %v", msg.AgentId, payload.Response)
+			cmdID := payload.Response.CommandId
 			s.mu.Lock()
-			s.commandResults[payload.Response.CommandId] = &commandResultEntry{
+			s.commandResults[cmdID] = &commandResultEntry{
 				Result:    payload.Response,
 				CreatedAt: time.Now(),
+			}
+			// Notify any HTTP handler waiting for this result
+			if ch, ok := s.pendingCmds[cmdID]; ok {
+				close(ch)
+				delete(s.pendingCmds, cmdID)
 			}
 			s.mu.Unlock()
 		}
@@ -152,7 +160,7 @@ func (s *CoreServer) StreamTelemetry(stream proto.SystemMonitor_StreamTelemetryS
 func (s *CoreServer) registerAgent(id string, stream proto.SystemMonitor_StreamTelemetryServer, meta *proto.Handshake) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	
+
 	// Add to memory
 	s.agents[id] = &AgentSession{
 		Stream:   stream,
@@ -204,16 +212,11 @@ func (s *CoreServer) markOffline(id string) {
 }
 
 func (s *CoreServer) updateAgentMetrics(id string, metrics *proto.MetricData) {
-	s.mu.RLock()
-	_, ok := s.agents[id]
-	s.mu.RUnlock()
-	if ok {
-		s.mu.Lock()
-		if sess, exists := s.agents[id]; exists {
-			sess.LastSeen = time.Now()
-			sess.LatestMetrics = metrics
-		}
-		s.mu.Unlock()
+	s.mu.Lock()
+	defer s.mu.Unlock()
+	if sess, exists := s.agents[id]; exists {
+		sess.LastSeen = time.Now()
+		sess.LatestMetrics = metrics
 	}
 }
 
@@ -244,9 +247,9 @@ func (s *CoreServer) GetAgents() []*AgentSession {
 
 	// If DB is empty or failed, fallback to memory agents only (for now)
 	// Or better: Construct the list from DB, and fill metrics from map.
-	
+
 	resultMap := make(map[string]*AgentSession)
-	
+
 	// 1. Add DB agents first
 	for _, a := range dbAgents {
 		// Convert store.Agent to AgentSession-like structure
@@ -259,7 +262,7 @@ func (s *CoreServer) GetAgents() []*AgentSession {
 			PlatformVersion: a.PlatformVersion,
 			BootTime:        a.BootTime,
 		}
-		
+
 		resultMap[a.Hostname] = &AgentSession{
 			Meta:     meta,
 			LastSeen: time.Unix(a.LastSeen, 0),
@@ -294,6 +297,30 @@ func (s *CoreServer) GetCommandResult(id string) *proto.CommandResponse {
 		return entry.Result
 	}
 	return nil
+}
+
+// RegisterPending creates a channel that will be closed when a command result arrives
+func (s *CoreServer) RegisterPending(cmdID string) chan struct{} {
+	ch := make(chan struct{})
+	s.mu.Lock()
+	s.pendingCmds[cmdID] = ch
+	s.mu.Unlock()
+	return ch
+}
+
+// WaitForResult blocks until a command result arrives or the timeout expires
+func (s *CoreServer) WaitForResult(cmdID string, timeout time.Duration) *proto.CommandResponse {
+	ch := s.RegisterPending(cmdID)
+	select {
+	case <-ch:
+		return s.GetCommandResult(cmdID)
+	case <-time.After(timeout):
+		// Clean up pending entry on timeout
+		s.mu.Lock()
+		delete(s.pendingCmds, cmdID)
+		s.mu.Unlock()
+		return nil
+	}
 }
 
 func (s *CoreServer) GetAgentHistory(id string, duration string) ([]map[string]interface{}, error) {
@@ -432,7 +459,7 @@ func (s *CoreServer) VerifyUser(username, password string) (string, error) {
 
 	user, err := s.db.GetUser(username)
 	if err != nil {
-		// Auto-create admin if no users exist? 
+		// Auto-create admin if no users exist?
 		// For simplicity, if user lookup fails and it's admin/admin, we might want to bootstrap.
 		// BUT better to just return error.
 		return "", fmt.Errorf("invalid credentials")

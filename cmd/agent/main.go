@@ -2,17 +2,20 @@ package main
 
 import (
 	"context"
+	"crypto/tls"
 	"fmt"
 	"log"
 	"net"
 	"os"
 	"os/exec"
+	"regexp"
 	"runtime"
-	"sentinel/internal/collector"
-	"sentinel/proto"
 	"sort"
 	"strings"
 	"time"
+
+	"sentinel/internal/collector"
+	"sentinel/proto"
 
 	"github.com/shirou/gopsutil/v3/cpu"
 	"github.com/shirou/gopsutil/v3/disk"
@@ -21,7 +24,7 @@ import (
 	"github.com/shirou/gopsutil/v3/process"
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/credentials"
-	"crypto/tls"
+	"google.golang.org/grpc/credentials/insecure"
 )
 
 // Global Docker Manager
@@ -57,25 +60,21 @@ func main() {
 func runAgent(addr string, col *collector.Collector) error {
 	// TLS Config
 	// Default: Secure (Verify Cert)
-	// Dev/Self-Signed: Set SENTINEL_INSECURE_TLS=true
+	// Dev/Self-Signed: Set SENTINEL_INSECURE_TLS=true for plaintext gRPC (no TLS)
 	insecureTLS := os.Getenv("SENTINEL_INSECURE_TLS") == "true"
-	
-	tlsConfig := &tls.Config{
-		InsecureSkipVerify: insecureTLS,
-	}
-	
+
+	var dialOpt grpc.DialOption
 	if insecureTLS {
-		log.Println("⚠️ WARNING: Running with InsecureSkipVerify=true (TLS certificate check disabled)")
+		log.Println("⚠️ WARNING: Running in INSECURE mode (no TLS)")
+		dialOpt = grpc.WithTransportCredentials(insecure.NewCredentials())
+	} else {
+		tlsConfig := &tls.Config{}
+		creds := credentials.NewTLS(tlsConfig)
+		dialOpt = grpc.WithTransportCredentials(creds)
 	}
-	
-	// Use TLS credentials
-	creds := credentials.NewTLS(tlsConfig)
-	
-	conn, err := grpc.NewClient(addr, grpc.WithTransportCredentials(creds))
-	// Fallback to insecure if TLS fails? No, enforce security or make it configurable.
-	// For backward compatibility during migration, we could try insecure if TLS fails,
-	// but that defeats the purpose of security. Let's stick to TLS.
-	
+
+	conn, err := grpc.NewClient(addr, dialOpt)
+
 	if err != nil {
 		return err
 	}
@@ -160,7 +159,15 @@ func runAgent(addr string, col *collector.Collector) error {
 	}()
 
 	go func() {
-		ticker := time.NewTicker(2 * time.Second)
+		// Metric collection interval (configurable via METRIC_INTERVAL_SECONDS, default 2)
+		intervalStr := os.Getenv("METRIC_INTERVAL_SECONDS")
+		interval := 2 * time.Second
+		if intervalStr != "" {
+			if n, err := time.ParseDuration(intervalStr + "s"); err == nil {
+				interval = n
+			}
+		}
+		ticker := time.NewTicker(interval)
 		defer ticker.Stop()
 		for range ticker.C {
 			m, err := col.Collect()
@@ -462,7 +469,7 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 			loadState := parts[1]
 			activeState := parts[2]
 			subState := parts[3]
-			
+
 			// Description can be multiple words
 			desc := ""
 			if len(parts) > 4 {
@@ -495,15 +502,17 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 		if runtime.GOOS != "linux" {
 			return errorResponse(cmd.Id, "Service management is only supported on Linux.")
 		}
-		
+
 		req := cmd.GetServiceAction()
 		if req == nil {
 			return errorResponse(cmd.Id, "Invalid request payload")
 		}
 
-		// Sanitize Service Name (Basic check to prevent command injection)
-		if strings.Contains(req.ServiceName, ";") || strings.Contains(req.ServiceName, "&") || strings.Contains(req.ServiceName, "|") {
-			return errorResponse(cmd.Id, "Invalid service name")
+		// Sanitize Service Name — strict whitelist to prevent command injection
+		// Only allow typical systemd unit names: alphanumeric, dash, underscore, dot, @
+		validServiceName := regexp.MustCompile(`^[a-zA-Z0-9@._-]+$`)
+		if !validServiceName.MatchString(req.ServiceName) {
+			return errorResponse(cmd.Id, "Invalid service name: contains disallowed characters")
 		}
 
 		// Action validation
@@ -592,11 +601,11 @@ func getMacAddress() string {
 		if iface.Flags&net.FlagUp == 0 {
 			continue
 		}
-		
+
 		// Skip virtual/docker interfaces
 		name := strings.ToLower(iface.Name)
-		if strings.HasPrefix(name, "veth") || strings.HasPrefix(name, "docker") || 
-		   strings.HasPrefix(name, "br-") || strings.HasPrefix(name, "virbr") {
+		if strings.HasPrefix(name, "veth") || strings.HasPrefix(name, "docker") ||
+			strings.HasPrefix(name, "br-") || strings.HasPrefix(name, "virbr") {
 			continue
 		}
 

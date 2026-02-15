@@ -9,12 +9,16 @@ import ErrorBoundary from './components/ErrorBoundary';
 
 function App() {
   const [token, setToken] = useState(localStorage.getItem("token"));
-  const [isLoading, setIsLoading] = useState(true);
+
+  const handleLogout = () => {
+    setToken(null);
+    localStorage.removeItem("token");
+    delete axios.defaults.headers.common['Authorization'];
+  };
 
   useEffect(() => {
     const storedToken = localStorage.getItem("token");
     if (storedToken) {
-      setToken(storedToken);
       axios.defaults.headers.common['Authorization'] = `Bearer ${storedToken}`;
     }
 
@@ -29,7 +33,6 @@ function App() {
       }
     );
 
-    setIsLoading(false);
 
     // Cleanup
     return () => {
@@ -43,13 +46,6 @@ function App() {
     localStorage.setItem("token", newToken);
   };
 
-  const handleLogout = () => {
-    setToken(null);
-    localStorage.removeItem("token");
-    delete axios.defaults.headers.common['Authorization'];
-  };
-
-  if (isLoading) return <div className="min-h-screen bg-gray-900 flex items-center justify-center text-white">Loading...</div>;
 
   return (
     <ErrorBoundary>

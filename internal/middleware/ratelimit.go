@@ -11,10 +11,11 @@ import (
 
 // IPRateLimiter manages limiters for each IP address
 type IPRateLimiter struct {
-	ips map[string]*rate.Limiter
-	mu  sync.RWMutex
-	r   rate.Limit // events per second
-	b   int        // burst size
+	ips      map[string]*rate.Limiter
+	lastSeen map[string]time.Time
+	mu       sync.RWMutex
+	r        rate.Limit // events per second
+	b        int        // burst size
 }
 
 // NewIPRateLimiter creates a custom rate limiter based on events/time and burst
@@ -26,9 +27,10 @@ func NewIPRateLimiter(limit int, window time.Duration) *IPRateLimiter {
 	r := rate.Limit(float64(limit) / window.Seconds())
 
 	i := &IPRateLimiter{
-		ips: make(map[string]*rate.Limiter),
-		r:   r,
-		b:   limit,
+		ips:      make(map[string]*rate.Limiter),
+		lastSeen: make(map[string]time.Time),
+		r:        r,
+		b:        limit,
 	}
 
 	// Cleanup routine to prevent memory leak from stale IPs
@@ -43,6 +45,7 @@ func (i *IPRateLimiter) AddIP(ip string) *rate.Limiter {
 
 	limiter := rate.NewLimiter(i.r, i.b)
 	i.ips[ip] = limiter
+	i.lastSeen[ip] = time.Now()
 	return limiter
 }
 
@@ -53,22 +56,23 @@ func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
 		limiter = rate.NewLimiter(i.r, i.b)
 		i.ips[ip] = limiter
 	}
+	i.lastSeen[ip] = time.Now()
 	i.mu.Unlock()
 	return limiter
 }
 
-// cleanup removes limiters that haven't been used recently?
-// Ideally, we need a "last seen" map for true cleanup.
-// For simplicity in this iteration, we just purge the map periodically if it gets too big.
-// Or we rely on the fact that rate.Limiter is small struct.
+// cleanup removes limiters for IPs that haven't been seen in the last 10 minutes.
+// This prevents unbounded memory growth from unique IP addresses.
 func (i *IPRateLimiter) cleanup() {
+	const ttl = 10 * time.Minute
 	for {
-		time.Sleep(10 * time.Minute)
+		time.Sleep(ttl)
 		i.mu.Lock()
-		// Naive cleanup: clear all if too big (simple protection)
-		// A better approach is checking LastSeen for each IP.
-		if len(i.ips) > 10000 {
-			i.ips = make(map[string]*rate.Limiter)
+		for ip, lastSeen := range i.lastSeen {
+			if time.Since(lastSeen) > ttl {
+				delete(i.ips, ip)
+				delete(i.lastSeen, ip)
+			}
 		}
 		i.mu.Unlock()
 	}

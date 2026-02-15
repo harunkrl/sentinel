@@ -154,6 +154,7 @@ export default function AgentDetail() {
             if (!isUpdating) fetchAgent();
         }, 5000);
         return () => clearInterval(interval);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [id, isUpdating]);
 
     // Tab changes
@@ -161,6 +162,7 @@ export default function AgentDetail() {
         if (!agent) return;
         if (activeTab === 'containers' && agent.status === 'online') fetchContainers();
         if (activeTab === 'logs' && agent.status === 'online') fetchLogs();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [activeTab, agent?.status]);
 
 

@@ -2,23 +2,32 @@ package middleware
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 )
 
-var SecretKey []byte
+var (
+	SecretKey  []byte
+	secretOnce sync.Once
+)
 
-func init() {
-	secret := os.Getenv("JWT_SECRET")
-	if secret == "" {
-		panic("JWT_SECRET environment variable is required")
-	}
-	SecretKey = []byte(secret)
+// initSecret lazily initializes the JWT secret key from environment.
+// This avoids panicking at import time which breaks tests and dependent packages.
+func initSecret() {
+	secretOnce.Do(func() {
+		secret := os.Getenv("JWT_SECRET")
+		if secret == "" {
+			log.Fatal("FATAL: JWT_SECRET environment variable is required")
+		}
+		SecretKey = []byte(secret)
+	})
 }
 
 type Claims struct {
@@ -28,6 +37,7 @@ type Claims struct {
 }
 
 func GenerateToken(username, role string) (string, error) {
+	initSecret()
 	expirationTime := time.Now().Add(24 * time.Hour)
 	claims := &Claims{
 		Username: username,
@@ -41,6 +51,7 @@ func GenerateToken(username, role string) (string, error) {
 }
 
 func AuthMiddleware() gin.HandlerFunc {
+	initSecret()
 	return func(c *gin.Context) {
 		tokenString := ""
 		authHeader := c.GetHeader("Authorization")

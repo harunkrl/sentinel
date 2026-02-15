@@ -67,7 +67,26 @@ func NewHttpServer(core *CoreServer) *HttpServer {
 
 	// Health Check — unauthenticated, for Docker/LB probes
 	api.GET("/health", func(c *gin.Context) {
-		c.JSON(http.StatusOK, gin.H{"status": "ok"})
+		health := gin.H{
+			"status": "ok",
+			"agents": len(s.core.agents),
+		}
+
+		// Check InfluxDB
+		if s.core.influx != nil {
+			health["influxdb"] = s.core.influx.Ping()
+		}
+
+		// Check SQLite
+		if s.core.db != nil {
+			if err := s.core.db.Ping(); err != nil {
+				health["sqlite"] = false
+			} else {
+				health["sqlite"] = true
+			}
+		}
+
+		c.JSON(http.StatusOK, health)
 	})
 
 	// Public Routes (with login rate limiting)
@@ -201,12 +220,29 @@ func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 	agentID := c.Param("id")
 	cmdID := uuid.New().String()
 
+	// Determine scheme — respect reverse proxy headers
+	scheme := "http"
+	if c.Request.TLS != nil {
+		scheme = "https"
+	}
+	if proto := c.GetHeader("X-Forwarded-Proto"); proto != "" {
+		scheme = proto
+	}
+
+	// Determine host:port — respect reverse proxy headers
+	host := c.Request.Host
+	if fwdHost := c.GetHeader("X-Forwarded-Host"); fwdHost != "" {
+		host = fwdHost
+	}
+
+	downloadURL := fmt.Sprintf("%s://%s/downloads/install.sh", scheme, host)
+
 	cmd := &proto.Command{
 		Id:   cmdID,
 		Type: proto.Command_UPDATE_AGENT,
 		Payload: &proto.Command_UpdateAgent{
 			UpdateAgent: &proto.UpdateAgentRequest{
-				DownloadUrl: fmt.Sprintf("http://%s/downloads/install.sh", c.Request.Host),
+				DownloadUrl: downloadURL,
 			},
 		},
 	}

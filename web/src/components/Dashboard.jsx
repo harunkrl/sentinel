@@ -30,11 +30,6 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
     const [isUpdatingAll, setIsUpdatingAll] = useState(false);
     const [updateProgress, setUpdateProgress] = useState({ current: 0, total: 0, completed: [] });
 
-    // Check for insecure connection
-    const isInsecure = window.location.protocol === 'http:' &&
-        window.location.hostname !== 'localhost' &&
-        window.location.hostname !== '127.0.0.1';
-
     const toggleFavorite = (hostname, e) => {
         e.stopPropagation();
         setFavorites(prev => {
@@ -168,7 +163,7 @@ export default function Dashboard({ onSelectAgent, onLogout }) {
 
             eventSource = new EventSource(`${API_BASE}/events?token=${token}`);
 
-            eventSource.onmessage = (event) => {
+            eventSource.onmessage = (_event) => {
                 // Throttle updates to max once per second
                 if (!updateTimeout.current) {
                     updateTimeout.current = setTimeout(() => {

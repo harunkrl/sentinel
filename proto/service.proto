@@ -2,7 +2,7 @@ syntax = "proto3";
 
 package sentinel;
 
-option go_package = "github.com/gigabyte/sentinel/proto";
+option go_package = "sentinel/proto";
 
 service SystemMonitor {
   rpc StreamTelemetry(stream Telemetry) returns (stream Command);

@@ -20,10 +20,8 @@ type AlertManager struct {
 }
 
 func NewAlertManager() *AlertManager {
-	defaultTopic := "sentinel-command-private-alarm-channel"
-
 	return &AlertManager{
-		Topic:      defaultTopic,
+		Topic:      config.DefaultNtfyTopic,
 		lastAlerts: make(map[string]time.Time),
 	}
 }

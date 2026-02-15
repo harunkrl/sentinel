@@ -69,6 +69,22 @@ func NewStore(dataDir string) (*Store, error) {
 	return s, nil
 }
 
+// Close closes the database connection. Should be called during graceful shutdown.
+func (s *Store) Close() error {
+	if s.db != nil {
+		return s.db.Close()
+	}
+	return nil
+}
+
+// Ping checks if the database connection is alive. Used by health check endpoints.
+func (s *Store) Ping() error {
+	if s.db != nil {
+		return s.db.Ping()
+	}
+	return fmt.Errorf("database not initialized")
+}
+
 func (s *Store) initSchema() error {
 	queries := []string{
 		`CREATE TABLE IF NOT EXISTS agents (

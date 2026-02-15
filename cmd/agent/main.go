@@ -252,6 +252,23 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 			log.Printf("⚠️ Warning: Legacy update command received. Using fallback URL: %s", downloadURL)
 		}
 
+		// Validate URL scheme — allow HTTP only for private/local networks
+		if strings.HasPrefix(downloadURL, "http://") {
+			u, _ := url.Parse(downloadURL)
+			host := u.Hostname()
+			ip := net.ParseIP(host)
+			isPrivate := host == "localhost" ||
+				(ip != nil && (ip.IsLoopback() || ip.IsPrivate() || ip.IsLinkLocalUnicast()))
+
+			if !isPrivate && os.Getenv("SENTINEL_ALLOW_HTTP_UPDATE") != "true" {
+				log.Printf("❌ Refusing HTTP update URL for public IP (use SENTINEL_ALLOW_HTTP_UPDATE=true to override): %s", downloadURL)
+				return errorResponse(cmd.Id, "HTTP update URLs are not allowed for public IPs. Use HTTPS or set SENTINEL_ALLOW_HTTP_UPDATE=true.")
+			}
+			if !isPrivate {
+				log.Printf("⚠️ WARNING: Using insecure HTTP for update (allowed via env): %s", downloadURL)
+			}
+		}
+
 		log.Printf("🔄 Update requested. Script URL: %s", downloadURL)
 
 		go func() {
@@ -329,6 +346,13 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 			return errorResponse(cmd.Id, "Docker not available")
 		}
 		req := cmd.GetDockerAction()
+
+		// Validate container ID — only allow hex characters (Docker short/long IDs) and names
+		validContainerID := regexp.MustCompile(`^[a-zA-Z0-9][a-zA-Z0-9_.-]*$`)
+		if !validContainerID.MatchString(req.ContainerId) {
+			return errorResponse(cmd.Id, "Invalid container ID: contains disallowed characters")
+		}
+
 		err := dockerMgr.ContainerAction(req.ContainerId, req.Action)
 		success := true
 		msg := fmt.Sprintf("Container %s %sed", req.ContainerId, req.Action)

@@ -1,23 +1,16 @@
-import React, { useRef, useEffect } from 'react';
+import React, { useRef, useEffect, useMemo } from 'react';
 import { FileText, RefreshCw } from 'lucide-react';
 
 export default function Terminal({ title = "System Logs", logs, loading, isOnline, onRefresh }) {
     const terminalRef = useRef(null);
     const [searchTerm, setSearchTerm] = React.useState("");
-    const [filteredLogs, setFilteredLogs] = React.useState(logs);
 
-    useEffect(() => {
-        if (!logs) {
-            setFilteredLogs("");
-            return;
-        }
-        if (!searchTerm) {
-            setFilteredLogs(logs);
-        } else {
-            const lines = logs.split('\n');
-            const filtered = lines.filter(line => line.toLowerCase().includes(searchTerm.toLowerCase()));
-            setFilteredLogs(filtered.join('\n'));
-        }
+    const filteredLogs = useMemo(() => {
+        if (!logs) return "";
+        if (!searchTerm) return logs;
+        const lines = logs.split('\n');
+        const filtered = lines.filter(line => line.toLowerCase().includes(searchTerm.toLowerCase()));
+        return filtered.join('\n');
     }, [logs, searchTerm]);
 
     useEffect(() => {

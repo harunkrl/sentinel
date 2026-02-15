@@ -52,10 +52,27 @@ func NewInfluxStore() (*InfluxStore, error) {
 	client := influxdb2.NewClient(url, token)
 	writeAPI := client.WriteAPI(org, bucket)
 
+	// Validate connection to InfluxDB
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+	ok, err := client.Ping(ctx)
+	if err != nil || !ok {
+		client.Close()
+		return nil, fmt.Errorf("failed to connect to InfluxDB at %s: %v", url, err)
+	}
+
 	return &InfluxStore{
 		client:   client,
 		writeAPI: writeAPI,
 	}, nil
+}
+
+// Ping checks if InfluxDB is reachable. Used by health check endpoints.
+func (s *InfluxStore) Ping() bool {
+	ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+	defer cancel()
+	ok, err := s.client.Ping(ctx)
+	return err == nil && ok
 }
 
 // Fixed parameter type: *proto.MetricData

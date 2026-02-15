@@ -43,6 +43,7 @@ func main() {
 		log.Printf("Warning: Failed to initialize SQLite store: %v", err)
 	} else {
 		log.Println("Connected to SQLite Database")
+		defer sqliteStore.Close()
 	}
 
 	// 3. Initialize Core Logic
@@ -58,17 +59,17 @@ func main() {
 			pwFile := dataDir + "/initial_admin_password.txt"
 			if err := os.WriteFile(pwFile, []byte(randomPassword), 0600); err != nil {
 				log.Printf("Warning: Failed to write password file: %v", err)
+				// Print to stdout as fallback only if file write fails
+				fmt.Println("\n==============================================")
+				fmt.Println("  INITIAL ADMIN CREDENTIALS")
+				fmt.Println("  Username: admin")
+				fmt.Printf("  Password: %s\n", randomPassword)
+				fmt.Println("  ⚠️  IMPORTANT: Change this password immediately!")
+				fmt.Println("==============================================")
 			} else {
-				fmt.Printf("\n✅ Initial admin password saved to: %s\n", pwFile)
+				fmt.Printf("\n✅ Admin user created. Credentials saved to: %s\n", pwFile)
+				fmt.Println("   ⚠️  IMPORTANT: Read the file, change the password, then delete it!")
 			}
-
-			// Print to stdout only (avoid logging systems if possible)
-			fmt.Println("\n==============================================")
-			fmt.Println("  INITIAL ADMIN CREDENTIALS")
-			fmt.Println("  Username: admin")
-			fmt.Printf("  Password: %s\n", randomPassword)
-			fmt.Println("  ⚠️  IMPORTANT: Change this password immediately!")
-			fmt.Println("==============================================")
 		}
 	}
 

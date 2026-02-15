@@ -1683,7 +1683,7 @@ const file_proto_service_proto_rawDesc = "" +
 	"\factive_state\x18\x04 \x01(\tR\vactiveState\x12\x1b\n" +
 	"\tsub_state\x18\x05 \x01(\tR\bsubState2N\n" +
 	"\rSystemMonitor\x12=\n" +
-	"\x0fStreamTelemetry\x12\x13.sentinel.Telemetry\x1a\x11.sentinel.Command(\x010\x01B$Z\"github.com/gigabyte/sentinel/protob\x06proto3"
+	"\x0fStreamTelemetry\x12\x13.sentinel.Telemetry\x1a\x11.sentinel.Command(\x010\x01B\x10Z\x0esentinel/protob\x06proto3"
 
 var (
 	file_proto_service_proto_rawDescOnce sync.Once

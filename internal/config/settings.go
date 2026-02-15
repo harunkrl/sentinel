@@ -9,9 +9,11 @@ import (
 )
 
 // Default settings
+const DefaultNtfyTopic = "sentinel-command-private-alarm-channel"
+
 var defaultSettings = Settings{
 	NotificationsEnabled: true,
-	NtfyTopic:            "sentinel-command-private-alarm-channel",
+	NtfyTopic:            DefaultNtfyTopic,
 	CpuThreshold:         90.0,
 	RamThreshold:         90.0,
 	DiskThreshold:        90.0,

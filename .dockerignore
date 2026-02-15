@@ -19,11 +19,12 @@ web/node_modules/
 website/node_modules/
 website/
 
-# Documentation and meta
+# Documentation and meta (exclude markdown but keep deploy/ directory)
 docs/
 README.md
-*.md
-!deploy/
+ARCHITECTURE.md
+CHANGELOG.md
+LICENSE
 
 # Environment files
 .env

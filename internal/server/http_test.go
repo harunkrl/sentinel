@@ -36,12 +36,12 @@ func TestHealthEndpoint(t *testing.T) {
 		t.Errorf("Expected status 200, got %d", w.Code)
 	}
 
-	var body map[string]string
+	var body map[string]interface{}
 	if err := json.Unmarshal(w.Body.Bytes(), &body); err != nil {
 		t.Fatalf("Failed to parse response: %v", err)
 	}
 	if body["status"] != "ok" {
-		t.Errorf("Expected status 'ok', got '%s'", body["status"])
+		t.Errorf("Expected status 'ok', got '%v'", body["status"])
 	}
 }
 

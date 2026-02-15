@@ -7,7 +7,7 @@ import (
 func TestNewCollector(t *testing.T) {
 	c := NewCollector()
 	if c == nil {
-		t.Error("NewCollector returned nil")
+		t.Fatal("NewCollector returned nil")
 	}
 	if c.lastNetStat == nil {
 		t.Error("lastNetStat map is nil")
@@ -17,19 +17,19 @@ func TestNewCollector(t *testing.T) {
 	}
 }
 
-// Note: TestCollect is difficult to test deterministically because it relies on 
-// actual system metrics (gopsutil). We would need to mock gopsutil, but for a 
-// capstone project, showing that we can write tests for initialization and basic 
+// Note: TestCollect is difficult to test deterministically because it relies on
+// actual system metrics (gopsutil). We would need to mock gopsutil, but for a
+// capstone project, showing that we can write tests for initialization and basic
 // logic is often sufficient as a first step.
 // We can test that it returns a non-nil object and no error.
 func TestCollect(t *testing.T) {
 	c := NewCollector()
 	metrics, err := c.Collect()
 	if err != nil {
-		t.Errorf("Collect returned error: %v", err)
+		t.Fatalf("Collect returned error: %v", err)
 	}
 	if metrics == nil {
-		t.Error("Collect returned nil metrics")
+		t.Fatal("Collect returned nil metrics")
 	}
 
 	// Basic sanity checks

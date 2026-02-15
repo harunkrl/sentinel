@@ -20,7 +20,7 @@ func (c *Collector) getLoadAvg() (float64, float64, float64) {
 }
 
 func (c *Collector) readThermal() float64 {
-	temps, err := host.SensorsTemperatures()
+	temps, _ := host.SensorsTemperatures()
 
 	// Even if there's an error (e.g. Warning), continue if data is available
 	if len(temps) > 0 {

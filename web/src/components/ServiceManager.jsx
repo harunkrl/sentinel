@@ -28,6 +28,7 @@ export default function ServiceManager({ agentId, isOnline }) {
         if (isOnline) {
             fetchServices();
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [agentId, isOnline]);
 
     const handleActionClick = (serviceName, action) => {

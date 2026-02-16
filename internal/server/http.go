@@ -254,7 +254,7 @@ func (s *HttpServer) handleUpdateAgent(c *gin.Context) {
 
 	// AUDIT LOG
 	if s.core.db != nil {
-		go s.core.db.AddAuditLog("update_agent", agentID, "User triggered update")
+		go func() { _ = s.core.db.AddAuditLog("update_agent", agentID, "User triggered update") }()
 	}
 
 	c.JSON(http.StatusOK, gin.H{"status": "updating", "command_id": cmdID})

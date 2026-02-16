@@ -189,7 +189,7 @@ func (s *CoreServer) registerAgent(id string, stream proto.SystemMonitor_StreamT
 			if err := s.db.UpsertAgent(agent); err != nil {
 				log.Printf("Failed to upsert agent %s: %v", id, err)
 			}
-			s.db.AddAuditLog("agent_connect", id, fmt.Sprintf("IP: %s", meta.IpAddress))
+			_ = s.db.AddAuditLog("agent_connect", id, fmt.Sprintf("IP: %s", meta.IpAddress))
 		}()
 	}
 }
@@ -205,8 +205,8 @@ func (s *CoreServer) markOffline(id string) {
 	// Update DB (async)
 	if s.db != nil {
 		go func() {
-			s.db.UpdateAgentStatus(id, "offline", time.Now().Unix())
-			s.db.AddAuditLog("agent_disconnect", id, "")
+			_ = s.db.UpdateAgentStatus(id, "offline", time.Now().Unix())
+			_ = s.db.AddAuditLog("agent_disconnect", id, "")
 		}()
 	}
 }
@@ -354,7 +354,7 @@ func (s *CoreServer) RemoveAgent(agentID string) {
 		if err := s.db.DeleteAgent(agentID); err != nil {
 			log.Printf("Error deleting agent from DB: %v", err)
 		}
-		s.db.AddAuditLog("delete_agent", agentID, "User Action")
+		_ = s.db.AddAuditLog("delete_agent", agentID, "User Action")
 	}
 }
 
@@ -428,7 +428,7 @@ func sendMagicPacket(macAddr string) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	_, err = conn.Write(payload)
 	return err

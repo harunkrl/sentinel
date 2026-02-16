@@ -25,7 +25,7 @@ func (c *Collector) readThermal() float64 {
 	// Even if there's an error (e.g. Warning), continue if data is available
 	if len(temps) > 0 {
 		var bestCandidate float64 = 0
-		var bestScore int = 0
+		var bestScore = 0
 
 		for _, t := range temps {
 			key := strings.ToLower(t.SensorKey)

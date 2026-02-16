@@ -50,7 +50,7 @@ func (a *AlertManager) SendMessageToTopic(message, tag, topic string) {
 			log.Printf("❌ Failed to send alert: %v", err)
 			return
 		}
-		defer resp.Body.Close()
+		defer func() { _ = resp.Body.Close() }()
 	}()
 }
 
@@ -106,8 +106,9 @@ func (a *AlertManager) sendWithDebounce(key string, msg string, tag string, topi
 	// Repeat same alarm every 5 minutes (Spam prevention)
 	debounceMinutes := 5
 	if envVal := os.Getenv("ALERT_DEBOUNCE_MINUTES"); envVal != "" {
-		if n, err := fmt.Sscanf(envVal, "%d", &debounceMinutes); n == 1 && err == nil {
-			// Use parsed value
+		var parsed int
+		if n, err := fmt.Sscanf(envVal, "%d", &parsed); n == 1 && err == nil {
+			debounceMinutes = parsed
 		}
 	}
 	if !exists || time.Since(last) > time.Duration(debounceMinutes)*time.Minute {

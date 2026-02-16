@@ -16,7 +16,7 @@ import (
 func init() {
 	gin.SetMode(gin.TestMode)
 	// Set JWT secret for test token generation
-	os.Setenv("JWT_SECRET", "test-secret-for-server-tests")
+	_ = os.Setenv("JWT_SECRET", "test-secret-for-server-tests")
 	middleware.SecretKey = []byte("test-secret-for-server-tests")
 }
 

@@ -10,11 +10,11 @@ import (
 
 func TestMain(m *testing.M) {
 	// Set JWT_SECRET for tests
-	os.Setenv("JWT_SECRET", "test-secret-key-for-unit-tests")
-	
+	_ = os.Setenv("JWT_SECRET", "test-secret-key-for-unit-tests")
+
 	// Reinitialize SecretKey
 	SecretKey = []byte(os.Getenv("JWT_SECRET"))
-	
+
 	os.Exit(m.Run())
 }
 

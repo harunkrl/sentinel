@@ -83,7 +83,7 @@ func (d *DockerManager) getContainerStats(ctx context.Context, containerID strin
 	if err != nil {
 		return nil, err
 	}
-	defer stats.Body.Close()
+	defer func() { _ = stats.Body.Close() }()
 
 	var v struct {
 		CPUStats struct {

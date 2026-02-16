@@ -147,7 +147,7 @@ func (s *Store) GetAgents() ([]Agent, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var agents []Agent
 	for rows.Next() {
@@ -177,7 +177,7 @@ func (s *Store) GetAuditLogs(limit int) ([]AuditLog, error) {
 	if err != nil {
 		return nil, err
 	}
-	defer rows.Close()
+	defer func() { _ = rows.Close() }()
 
 	var logs []AuditLog
 	for rows.Next() {

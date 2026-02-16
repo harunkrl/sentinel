@@ -43,7 +43,7 @@ func main() {
 		log.Printf("Warning: Failed to initialize SQLite store: %v", err)
 	} else {
 		log.Println("Connected to SQLite Database")
-		defer sqliteStore.Close()
+		defer func() { _ = sqliteStore.Close() }()
 	}
 
 	// 3. Initialize Core Logic

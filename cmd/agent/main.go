@@ -102,7 +102,7 @@ func runAgent(addr string, col *collector.Collector) error {
 	if err != nil {
 		return err
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	client := proto.NewSystemMonitorClient(conn)
 	stream, err := client.StreamTelemetry(context.Background())
@@ -403,9 +403,9 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 		go func() {
 			time.Sleep(2 * time.Second)
 			if runtime.GOOS == "windows" {
-				exec.Command("shutdown", "/r", "/t", "2", "/f").Run()
+				_ = exec.Command("shutdown", "/r", "/t", "2", "/f").Run()
 			} else {
-				exec.Command("reboot").Run()
+				_ = exec.Command("reboot").Run()
 			}
 		}()
 		return successResponse(cmd.Id, "System is rebooting...")
@@ -415,9 +415,9 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 		go func() {
 			time.Sleep(2 * time.Second)
 			if runtime.GOOS == "windows" {
-				exec.Command("shutdown", "/s", "/t", "2", "/f").Run()
+				_ = exec.Command("shutdown", "/s", "/t", "2", "/f").Run()
 			} else {
-				exec.Command("shutdown", "-h", "now").Run()
+				_ = exec.Command("shutdown", "-h", "now").Run()
 			}
 		}()
 		return successResponse(cmd.Id, "System is shutting down...")
@@ -428,10 +428,10 @@ func handleCommand(cmd *proto.Command) *proto.Telemetry {
 			time.Sleep(2 * time.Second)
 			if runtime.GOOS == "windows" {
 				// Hibernate off, Suspend on
-				exec.Command("rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0").Run()
+				_ = exec.Command("rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0").Run()
 			} else {
 				// Systemd suspend
-				exec.Command("systemctl", "suspend").Run()
+				_ = exec.Command("systemctl", "suspend").Run()
 			}
 		}()
 		return successResponse(cmd.Id, "System is suspending...")
@@ -631,7 +631,6 @@ func getOutboundIP(targetAddr string) string {
 	host, _, _ := net.SplitHostPort(targetAddr)
 	if host == "" || host == "localhost" {
 		// If target is localhost, test via external (Google DNS)
-		host = "8.8.8.8"
 		targetAddr = "8.8.8.8:80"
 	} else {
 		// If target is specific IP without port
@@ -644,7 +643,7 @@ func getOutboundIP(targetAddr string) string {
 	if err != nil {
 		return "127.0.0.1"
 	}
-	defer conn.Close()
+	defer func() { _ = conn.Close() }()
 
 	localAddr := conn.LocalAddr().(*net.UDPAddr)
 	return localAddr.IP.String()

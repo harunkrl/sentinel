@@ -122,7 +122,7 @@ export default function Home() {
                                         <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75"></span>
                                         <span className="relative inline-flex rounded-full h-2 w-2 bg-primary"></span>
                                     </span>
-                                    v1.1 — Free & Open Source
+                                    v1.2 — Free & Open Source
                                 </div>
                                 <h1 className="animate-fade-in-up text-3xl sm:text-4xl lg:text-5xl xl:text-6xl font-bold tracking-tight text-white leading-[1.1] mb-6" style={{ animationDelay: '0.1s' }}>
                                     Your Servers. Your Data. <br />

@@ -70,9 +70,12 @@ internal/
 ├── config/
 │   └── settings.go   # Configuration management
 ├── collector/
-│   └── metrics.go    # Metric collection
+│   ├── metrics.go        # Cross-platform metric collection
+│   ├── metrics_linux.go  # Linux-specific sensors (thermal, load avg)
+│   ├── metrics_test.go   # Collector tests
+│   └── docker.go         # Docker container management
 └── alert/
-    └── alert.go      # Alerting system
+    └── alert.go          # Alerting system (ntfy.sh)
 ```
 
 ### 2.2 Core Server (`cmd/core/main.go`)
@@ -88,9 +91,11 @@ func main() {
     // 3. Create Core server
     core := server.NewCoreServer(influxStore, sqliteStore)
     
-    // 4. Boostrap Admin user
+    // 4. Bootstrap Admin user (password persisted to file)
     if _, err := sqliteStore.GetUser("admin"); err != nil {
-        core.CreateUser("admin", randomPassword, "admin")
+        password := generateSecurePassword()
+        core.CreateUser("admin", password, "admin")
+        os.WriteFile("data/initial_admin_password.txt", []byte(password), 0600)
     }
     
     // 5. Start gRPC server (for agents)
@@ -184,9 +189,13 @@ func (s *CoreServer) StreamTelemetry(stream proto.SystemMonitor_StreamTelemetryS
 ```
 src/
 ├── components/
-│   ├── Dashboard.jsx       # Main dashboard
-│   ├── AgentDetail.jsx     # Agent detail page
-│   ├── SettingsModal.jsx   # Settings modal
+│   ├── Dashboard.jsx       # Main dashboard with agent overview
+│   ├── AgentDetail.jsx     # Agent detail page with charts
+│   ├── MetricsChart.jsx    # Real-time metric visualizations
+│   ├── ProcessManager.jsx  # Remote process management
+│   ├── ServiceManager.jsx  # Systemd service control
+│   ├── Terminal.jsx        # Remote terminal/log viewer
+│   ├── SettingsModal.jsx   # Settings & notification config
 │   ├── Login.jsx           # Login page
 │   └── ErrorBoundary.jsx   # Error handling
 ├── utils/
@@ -229,13 +238,14 @@ function App() {
 ### 3.3 Real-time Updates (SSE)
 
 ```jsx
-// Dashboard.jsx
+// Dashboard.jsx — SSE with JWT authentication
 useEffect(() => {
-    const eventSource = new EventSource(`${API_BASE}/events`);
+    const token = localStorage.getItem("token");
+    const eventSource = new EventSource(`${API_BASE}/events?token=${token}`);
     
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        // Update agent metrics
+        // Update agent metrics in real-time
         updateAgentMetrics(data);
     };
     
@@ -557,27 +567,33 @@ func GenerateToken(username, role string) (string, error) {
 }
 ```
 
-### 7.3 Rate Limiting
+### 7.4 Rate Limiting
 
 ```go
-type RateLimiter struct {
-    requests map[string]*requestInfo
-    limit    int
-    window   time.Duration
+import "golang.org/x/time/rate"
+
+type IPRateLimiter struct {
+    ips map[string]*rate.Limiter
+    mu  sync.RWMutex
+    r   rate.Limit    // Tokens per second
+    b   int           // Burst size
 }
 
-func (rl *RateLimiter) Allow(ip string) bool {
-    // Check requests per IP
-    if info.count >= rl.limit {
-        return false
+func (i *IPRateLimiter) GetLimiter(ip string) *rate.Limiter {
+    i.mu.Lock()
+    defer i.mu.Unlock()
+    limiter, exists := i.ips[ip]
+    if !exists {
+        limiter = rate.NewLimiter(i.r, i.b)
+        i.ips[ip] = limiter
     }
-    info.count++
-    return true
+    return limiter
 }
 
-// Usage:
-// Login: 5 req/min
-// API: 100 req/min
+// Pre-configured limiters with TTL cleanup:
+// Login:  5 req/min  (burst 3)
+// API:    100 req/min (burst 10)
+// Stale entries cleaned every 10 minutes
 ```
 
 ---

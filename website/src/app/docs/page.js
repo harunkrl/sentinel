@@ -504,8 +504,7 @@ cp .env.example .env
                                         <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-[#0da6f2]/20 text-[#0da6f2] flex items-center justify-center font-bold shrink-0 text-sm sm:text-base">4</div>
                                         <div className="flex-1 min-w-0">
                                             <h4 className="text-white font-bold mb-2">Get admin credentials</h4>
-                                            <CodeBlock code={`# View initial admin credentials from container logs
-docker logs sentinel_core | grep -A3 "INITIAL ADMIN"`} />
+                                            <CodeBlock code={`# View the auto-generated admin password\ncat data/initial_admin_password.txt`} />
                                         </div>
                                     </div>
                                 </div>
@@ -824,9 +823,8 @@ After=network.target
 Type=simple
 User=root
 Environment="CORE_ADDRESS=<SERVER_IP>:50051"
-Environment="AGENT_SECRET=<your-agent-secret>"
 Environment="SENTINEL_INSECURE_TLS=true"
-Environment="LOG_LEVEL=info"
+Environment="METRIC_INTERVAL_SECONDS=2"
 
 ExecStart=/usr/local/bin/sentinel-agent
 Restart=always
@@ -1035,6 +1033,18 @@ make update`} filename="CLI Examples" />
                                 <ApiEndpoint method="POST" path="/api/settings" description="Save settings" />
                                 <ApiEndpoint method="GET" path="/api/events" description="SSE stream" />
                                 <ApiEndpoint method="GET" path="/api/health" description="Liveness check" />
+
+                                <SubSection>Audit</SubSection>
+                                <ApiEndpoint method="GET" path="/api/audit-logs" description="Get audit logs" />
+                                <ApiEndpoint method="DELETE" path="/api/audit-logs" description="Clear audit logs" />
+
+                                <SubSection>Processes & Remote Control</SubSection>
+                                <ApiEndpoint method="POST" path="/api/agent/:id/processes" description="List processes" />
+                                <ApiEndpoint method="POST" path="/api/agent/:id/kill" description="Kill process" />
+                                <ApiEndpoint method="POST" path="/api/agent/:id/update" description="Remote agent update" />
+                                <ApiEndpoint method="POST" path="/api/agent/:id/wake" description="Wake agent (WoL)" />
+                                <ApiEndpoint method="GET" path="/api/agent/:id/logs" description="Get agent logs" />
+                                <ApiEndpoint method="GET" path="/api/command/:id" description="Get command result" />
                             </section>
 
                             {/* Security */}
@@ -1055,6 +1065,8 @@ make update`} filename="CLI Examples" />
                                             <tr><td className="p-3 text-slate-300">Rate Limiting</td><td className="p-3 text-slate-400">Token Bucket (x/time/rate)</td></tr>
                                             <tr><td className="p-3 text-slate-300">gRPC Transport</td><td className="p-3 text-slate-400">TLS default, auto-fallback to plaintext (SENTINEL_INSECURE_TLS)</td></tr>
                                             <tr><td className="p-3 text-slate-300">Audit Logs</td><td className="p-3 text-slate-400">Tracks critical actions (updates, deletions)</td></tr>
+                                            <tr><td className="p-3 text-slate-300">Admin Password</td><td className="p-3 text-slate-400">Auto-generated, persisted to file (not logged to stdout)</td></tr>
+                                            <tr><td className="p-3 text-slate-300">HTTP Update Protection</td><td className="p-3 text-slate-400">Blocked by default; requires SENTINEL_ALLOW_HTTP_UPDATE flag</td></tr>
                                         </tbody>
                                     </table>
                                 </div>
@@ -1173,7 +1185,7 @@ make prod`} />
                         </div>
 
                         <footer className="mt-12 sm:mt-20 pt-6 sm:pt-8 border-t border-white/10 text-center flex flex-col justify-center items-center text-sm text-slate-500 pb-8 sm:pb-10 gap-4">
-                            <p>© 2026 Sentinel. Open Source under MIT License.</p>
+                            <p>© 2025-2026 Sentinel. Open Source under MIT License.</p>
                             <a href="https://github.com/harunkrl/sentinel" rel="noopener noreferrer" className="hover:text-white transition flex items-center gap-1">
                                 <ExternalLink className="w-4 h-4" /> GitHub
                             </a>

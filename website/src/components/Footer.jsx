@@ -56,12 +56,12 @@ export default function Footer() {
             <div className="border-t border-white/5 bg-black/20">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 flex flex-col md:flex-row justify-between items-center gap-4">
                     <p className="text-gray-500 text-sm">
-                        © 2025 Sentinel. Open Source under MIT License.
+                        © 2025-2026 Sentinel. Open Source under MIT License.
                     </p>
                     <div className="flex items-center gap-4 text-sm text-gray-500 font-mono">
                         <span>Built with Go & React</span>
                         <span className="w-1 h-1 bg-gray-600 rounded-full"></span>
-                        <span>v1.1</span>
+                        <span>v1.2</span>
                     </div>
                 </div>
             </div>

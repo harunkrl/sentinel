@@ -190,6 +190,8 @@ You should see:
 | `ALERT_DEBOUNCE_MINUTES` | `5` | Alert notification cooldown |
 | `SENTINEL_INSECURE_TLS` | `false` | Agent: use plaintext gRPC (no TLS) |
 | `NTFY_TOPIC` | — | Ntfy.sh topic for push notifications |
+| `SENTINEL_ALLOW_HTTP_UPDATE` | `false` | Allow agent updates over HTTP (insecure, dev only) |
+| `SENTINEL_SKIP_TLS_VERIFY` | `false` | Skip TLS cert verification for agent updates |
 
 ---
 
@@ -426,6 +428,7 @@ graph TB
 | Rate Limiting | **Token Bucket** algorithm (golang.org/x/time/rate) |
 | CORS | Configurable origins |
 | **Audit Logs** | Tracks critical actions (updates, deletions) |
+| **Admin Password** | Auto-generated, persisted to `data/initial_admin_password.txt` |
 
 ---
 
